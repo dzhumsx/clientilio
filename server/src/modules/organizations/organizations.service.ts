@@ -134,7 +134,7 @@ export class OrganizationService {
     if (!org) throw new NotFoundError('Organization');
 
     const limits = getPlanLimits(org.planId);
-    if (org._count.memberships >= limits.maxTeamMembers) {
+    if (limits.maxTeamMembers !== -1 && org._count.memberships >= limits.maxTeamMembers) {
       throw new PlanLimitError('team_members', org._count.memberships, limits.maxTeamMembers);
     }
 
@@ -191,7 +191,7 @@ export class OrganizationService {
       console.log(`[DEV] Invitation token for ${input.email}: ${token}`);
     }
 
-    return { id: invitation.id, email: invitation.email, expiresAt: invitation.expiresAt, token: process.env.NODE_ENV === 'development' ? token : undefined };
+    return { id: invitation.id, email: invitation.email, expiresAt: invitation.expiresAt, token };
   }
 
   /**
@@ -248,6 +248,116 @@ export class OrganizationService {
     return {
       organization: invitation.organization,
       role: result.role,
+    };
+  }
+
+  /**
+   * List pending invitations
+   */
+  async listInvitations(orgId: string) {
+    const invitations = await prisma.invitation.findMany({
+      where: {
+        organizationId: orgId,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        createdBy: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invitations.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      role: inv.role,
+      type: inv.type,
+      expiresAt: inv.expiresAt,
+      createdAt: inv.createdAt,
+      createdBy: inv.createdBy,
+    }));
+  }
+
+  /**
+   * Revoke / cancel an invitation
+   */
+  async revokeInvitation(orgId: string, invitationId: string) {
+    const invitation = await prisma.invitation.findFirst({
+      where: { id: invitationId, organizationId: orgId },
+    });
+    if (!invitation) throw new NotFoundError('Invitation');
+
+    await prisma.invitation.update({
+      where: { id: invitationId },
+      data: { revokedAt: new Date() },
+    });
+
+    return { message: 'Invitation revoked successfully' };
+  }
+
+  /**
+   * Get invitation preview by token
+   */
+  async getInvitationByToken(token: string) {
+    const tokenHash = hashToken(token);
+    const invitation = await prisma.invitation.findUnique({
+      where: { tokenHash },
+      include: {
+        organization: { select: { id: true, name: true, slug: true } },
+        createdBy: { select: { name: true } },
+      },
+    });
+
+    if (!invitation || invitation.acceptedAt || invitation.revokedAt || invitation.expiresAt < new Date()) {
+      throw new ForbiddenError('Invalid or expired invitation');
+    }
+
+    return {
+      id: invitation.id,
+      email: invitation.email,
+      role: invitation.role,
+      organization: invitation.organization,
+      inviterName: invitation.createdBy.name,
+      expiresAt: invitation.expiresAt,
+    };
+  }
+
+  /**
+   * Update a member's role
+   */
+  async updateMemberRole(orgId: string, membershipId: string, newRole: MemberRole, actorRole: MemberRole) {
+    const membership = await prisma.membership.findFirst({
+      where: { id: membershipId, organizationId: orgId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+
+    if (!membership) throw new NotFoundError('Membership');
+
+    if (membership.role === 'OWNER') {
+      throw new ForbiddenError('Cannot change the role of the owner');
+    }
+
+    if (actorRole === 'MEMBER') {
+      throw new ForbiddenError('Members cannot change roles');
+    }
+
+    const updated = await prisma.membership.update({
+      where: { id: membershipId },
+      data: { role: newRole },
+      include: { user: { select: { id: true, name: true, email: true, avatarUrl: true } } },
+    });
+
+    invalidateOrgContextCache(orgId, membership.userId);
+
+    return {
+      id: updated.id,
+      userId: updated.user.id,
+      name: updated.user.name,
+      email: updated.user.email,
+      avatarUrl: updated.user.avatarUrl,
+      role: updated.role,
+      joinedAt: updated.createdAt,
     };
   }
 

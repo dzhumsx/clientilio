@@ -13,6 +13,7 @@ async function main() {
   try {
     await prisma.$connect();
     console.log('✅ Connected to database successfully.');
+    await prisma.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "mfaEnabled" BOOLEAN DEFAULT false;').catch(() => {});
 
     // Auto-seed if the database is brand new (no users)
     const userCount = await prisma.user.count().catch(() => 0);

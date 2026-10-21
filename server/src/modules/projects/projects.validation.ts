@@ -7,15 +7,19 @@ export const createProjectSchema = z.object({
   category: z.string().max(100).optional(),
   startDate: z.string().datetime().optional(),
   dueDate: z.string().datetime().optional(),
+  targetEndDate: z.string().datetime().optional(),
+  budget: z.number().optional(),
 });
 
 export const updateProjectSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
-  status: z.enum(['DRAFT', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED']).optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED', 'PLANNING', 'IN_PROGRESS', 'REVIEW']).optional(),
   category: z.string().max(100).optional(),
   startDate: z.string().datetime().optional().nullable(),
   dueDate: z.string().datetime().optional().nullable(),
+  targetEndDate: z.string().datetime().optional().nullable(),
+  budget: z.number().optional().nullable(),
 });
 
 export const listProjectsSchema = z.object({

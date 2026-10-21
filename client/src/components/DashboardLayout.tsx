@@ -31,7 +31,7 @@ export const DashboardLayout: React.FC = () => {
           }}
         />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ fontSize: '0.9rem' }}>Carregando Nexora...</p>
+        <p style={{ fontSize: '0.9rem' }}>Carregando Marketiv.io...</p>
       </div>
     );
   }

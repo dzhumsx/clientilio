@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
     // 1. Check saved preference
-    const saved = localStorage.getItem('nexora_theme') as Theme | null;
+    const saved = localStorage.getItem('Marketiv.io_theme') as Theme | null;
     if (saved === 'light' || saved === 'dark') {
       return saved;
     }
@@ -33,7 +33,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       document.documentElement.classList.add('light');
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('nexora_theme', targetTheme);
+    localStorage.setItem('Marketiv.io_theme', targetTheme);
   };
 
   useEffect(() => {

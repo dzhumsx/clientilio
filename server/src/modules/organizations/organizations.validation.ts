@@ -14,6 +14,11 @@ export const inviteMemberSchema = z.object({
   role: z.enum(['ADMIN', 'MEMBER']).default('MEMBER'),
 });
 
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(['ADMIN', 'MEMBER']),
+});
+
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;

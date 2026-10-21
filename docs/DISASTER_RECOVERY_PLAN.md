@@ -2,7 +2,7 @@
 
 ## 1. Visão Geral e Objetivos
 
-Este documento formaliza as diretrizes, procedimentos e métricas de contingência do sistema **Nexora** em caso de indisponibilidade severa de infraestrutura, perda de banco de dados, corrupção de dados ou incidentes de segurança.
+Este documento formaliza as diretrizes, procedimentos e métricas de contingência do sistema **Marketiv.io** em caso de indisponibilidade severa de infraestrutura, perda de banco de dados, corrupção de dados ou incidentes de segurança.
 
 | Métrica | Meta Operacional | Descrição |
 |---|---|---|

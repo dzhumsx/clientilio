@@ -20,7 +20,7 @@ export interface UserMfaRecord {
 const MFA_STORE_DIR = path.resolve(__dirname, '../../.data');
 const MFA_STORE_FILE = path.join(MFA_STORE_DIR, 'mfa_security.json');
 
-// Garante diretório seguro de armazenamento
+// Garante diretório seguro de chaves de segurança MFA
 function ensureStore(): Record<string, UserMfaRecord> {
   if (!fs.existsSync(MFA_STORE_DIR)) {
     fs.mkdirSync(MFA_STORE_DIR, { recursive: true });
@@ -57,7 +57,7 @@ export class MfaService {
   async setupMfa(userId: string, email: string): Promise<{ secret: string; uri: string; backupCodes: string[] }> {
     const secret = generateTotpSecret();
     const backupCodes = generateBackupCodes(8);
-    const uri = generateTotpUri(email, 'Nexora Portal', secret);
+    const uri = generateTotpUri(email, 'Marketiv.io Portal', secret);
 
     const store = ensureStore();
     store[userId] = {

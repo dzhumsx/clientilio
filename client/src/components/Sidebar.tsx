@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,21 +12,35 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { Modal } from './Modal';
+import { Logo } from './Logo';
 
 export const Sidebar: React.FC = () => {
   const { user, currentOrg, organizations, setCurrentOrg, logout } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+      navigate('/login');
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
   };
 
   const navItems = [
     { label: 'Visão Geral', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Clientes', path: '/dashboard/clients', icon: Users },
+    { label: 'Clientes', path: '/dashboard/clients', icon: Building2 },
     { label: 'Projetos', path: '/dashboard/projects', icon: Briefcase },
     { label: 'Entregáveis', path: '/dashboard/deliverables', icon: CheckCircle2 },
+    { label: 'Equipe', path: '/dashboard/team', icon: Users },
     { label: 'Planos & Faturamento', path: '/dashboard/billing', icon: CreditCard },
   ];
 
@@ -56,41 +70,7 @@ export const Sidebar: React.FC = () => {
           borderBottom: '1px solid var(--border-hairline)',
         }}
       >
-        <div
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '5px',
-            background: 'var(--accent-primary)',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '11px',
-            fontWeight: 900,
-            boxShadow: 'var(--accent-glow)',
-          }}
-        >
-          ▲
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-          <span style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-            Nexora
-          </span>
-          <span
-            className="eyebrow"
-            style={{
-              fontSize: '9px',
-              color: 'var(--accent-primary)',
-              background: 'var(--accent-subtle)',
-              padding: '1px 5px',
-              borderRadius: '3px',
-              border: '1px solid var(--accent-border)',
-            }}
-          >
-            AGÊNCIA
-          </span>
-        </div>
+        <Logo size={24} textSize="15px" />
       </div>
 
       {/* Organization Switcher */}
@@ -269,7 +249,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="btn btn-ghost"
           style={{
             padding: '0.4rem',
@@ -282,6 +262,73 @@ export const Sidebar: React.FC = () => {
           <LogOut size={15} />
         </button>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        isOpen={showLogoutConfirm}
+        onClose={() => !isLoggingOut && setShowLogoutConfirm(false)}
+        title="Confirmar Saída"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-danger, #ef4444)',
+                flexShrink: 0,
+              }}
+            >
+              <LogOut size={20} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                Deseja realmente sair da sua conta?
+              </p>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                Sua sessão de 6 horas será encerrada com segurança neste dispositivo.
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.5rem',
+              paddingTop: '0.875rem',
+              borderTop: '1px solid var(--border-hairline)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(false)}
+              className="btn btn-ghost btn-sm"
+              disabled={isLoggingOut}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmLogout}
+              className="btn btn-sm"
+              style={{
+                background: 'var(--color-danger, #ef4444)',
+                color: '#ffffff',
+                border: 'none',
+              }}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? 'Encerrando...' : 'Sair da Conta'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </aside>
   );
 };

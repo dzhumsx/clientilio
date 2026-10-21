@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  const adminEmail = 'admin@nexora.com';
+  const adminEmail = 'admin@Marketiv.io.com';
   const existingUser = await prisma.user.findUnique({
     where: { email: adminEmail },
   });
@@ -30,8 +30,8 @@ async function main() {
 
   const organization = await prisma.organization.create({
     data: {
-      name: 'Agência Nexora Demo',
-      slug: 'agencia-nexora-demo',
+      name: 'Agência Marketiv.io Demo',
+      slug: 'agencia-Marketiv.io-demo',
       ownerId: user.id,
       planId: 'agency',
       memberships: {

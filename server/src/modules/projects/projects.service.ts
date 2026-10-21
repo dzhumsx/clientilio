@@ -23,7 +23,7 @@ export class ProjectService {
     if (!org) throw new NotFoundError('Organization');
 
     const limits = getPlanLimits(org.planId);
-    if (org._count.projects >= limits.maxActiveProjects) {
+    if (limits.maxActiveProjects !== -1 && org._count.projects >= limits.maxActiveProjects) {
       throw new PlanLimitError('active_projects', org._count.projects, limits.maxActiveProjects);
     }
 
@@ -35,7 +35,7 @@ export class ProjectService {
         description: input.description,
         category: input.category,
         startDate: input.startDate ? new Date(input.startDate) : undefined,
-        dueDate: input.dueDate ? new Date(input.dueDate) : undefined,
+        dueDate: (input.dueDate || input.targetEndDate) ? new Date(input.dueDate || input.targetEndDate!) : undefined,
         createdById: userId,
       },
       include: { client: { select: { id: true, name: true } } },
@@ -45,7 +45,9 @@ export class ProjectService {
   async list(orgId: string, input: ListProjectsInput) {
     const where: any = { organizationId: orgId };
 
-    if (input.status !== 'ALL') {
+    if (input.status === 'ALL') {
+      where.status = { not: 'ARCHIVED' };
+    } else {
       where.status = input.status;
     }
     if (input.clientId) {
@@ -105,12 +107,24 @@ export class ProjectService {
     });
     if (!existing) throw new NotFoundError('Project');
 
+    const effectiveDueDate = input.dueDate !== undefined ? input.dueDate : input.targetEndDate;
+    const normalizedStatus = input.status === 'PLANNING' ? 'DRAFT'
+      : (input.status === 'IN_PROGRESS' || input.status === 'REVIEW') ? 'ACTIVE'
+      : input.status;
+
     return prisma.project.update({
       where: { id: projectId },
       data: {
-        ...input,
-        startDate: input.startDate !== undefined ? (input.startDate ? new Date(input.startDate) : null) : undefined,
-        dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : undefined,
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(normalizedStatus !== undefined && { status: normalizedStatus as any }),
+        ...(input.category !== undefined && { category: input.category }),
+        ...(input.startDate !== undefined && {
+          startDate: input.startDate ? new Date(input.startDate) : null,
+        }),
+        ...(effectiveDueDate !== undefined && {
+          dueDate: effectiveDueDate ? new Date(effectiveDueDate) : null,
+        }),
       },
       include: {
         client: { select: { id: true, name: true } },
@@ -148,4 +162,75 @@ export class ProjectService {
 
     return projects;
   }
+
+  async archive(orgId: string, projectId: string) {
+    const existing = await prisma.project.findFirst({
+      where: { id: projectId, organizationId: orgId },
+    });
+    if (!existing) throw new NotFoundError('Project');
+
+    return prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'ARCHIVED' },
+      include: {
+        client: { select: { id: true, name: true } },
+        _count: { select: { tasks: true, deliverables: true } },
+      },
+    });
+  }
+
+  async reactivate(orgId: string, projectId: string) {
+    const existing = await prisma.project.findFirst({
+      where: { id: projectId, organizationId: orgId },
+    });
+    if (!existing) throw new NotFoundError('Project');
+
+    return prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'ACTIVE' },
+      include: {
+        client: { select: { id: true, name: true } },
+        _count: { select: { tasks: true, deliverables: true } },
+      },
+    });
+  }
+
+  async delete(orgId: string, projectId: string) {
+    const existing = await prisma.project.findFirst({
+      where: { id: projectId, organizationId: orgId },
+    });
+    if (!existing) throw new NotFoundError('Project');
+
+    // Cascade delete deliverables and their children
+    const deliverableIds = (
+      await prisma.deliverable.findMany({
+        where: { projectId },
+        select: { id: true },
+      })
+    ).map((d) => d.id);
+
+    if (deliverableIds.length > 0) {
+      await prisma.approval.deleteMany({
+        where: { deliverableId: { in: deliverableIds } },
+      });
+      await prisma.deliverableVersion.deleteMany({
+        where: { deliverableId: { in: deliverableIds } },
+      });
+      await prisma.deliverable.deleteMany({
+        where: { id: { in: deliverableIds } },
+      });
+    }
+
+    await prisma.task.deleteMany({
+      where: { projectId },
+    });
+    await prisma.comment.deleteMany({
+      where: { resourceType: 'project', resourceId: projectId },
+    });
+
+    return prisma.project.delete({
+      where: { id: projectId },
+    });
+  }
 }
+

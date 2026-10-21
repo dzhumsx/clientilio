@@ -18,6 +18,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Deliverable, Project } from '../types';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
+import { LogoIcon } from '../components/Logo';
 
 export const ClientPortalPage: React.FC = () => {
   const { currentOrg, user } = useAuth();
@@ -123,22 +124,7 @@ export const ClientPortalPage: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div
-            style={{
-              width: '26px',
-              height: '26px',
-              borderRadius: '4px',
-              background: 'var(--text-primary)',
-              color: 'var(--bg-canvas)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.75rem',
-              fontWeight: 900,
-            }}
-          >
-            ▲
-          </div>
+          <LogoIcon size={26} />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.875rem', fontWeight: 600, letterSpacing: '-0.02em' }}>

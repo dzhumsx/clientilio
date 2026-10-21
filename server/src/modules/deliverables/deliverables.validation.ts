@@ -23,6 +23,9 @@ export const createDeliverableSchema = z.object({
   title: z.string().min(1).max(300),
   description: z.string().max(5000).optional(),
   type: z.enum(['IMAGE', 'VIDEO', 'DOCUMENT', 'PRESENTATION', 'TEXT', 'CAPTION', 'REPORT', 'CREATIVE', 'BRANDING', 'EXTERNAL_PREVIEW', 'OTHER']).optional().default('OTHER'),
+  clientVisible: z.boolean().optional(),
+  initialExternalUrl: z.string().url().optional().or(z.literal('')),
+  initialNotes: z.string().max(2000).optional(),
 });
 
 export const updateDeliverableSchema = z.object({

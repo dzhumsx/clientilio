@@ -17,7 +17,6 @@ import organizationsRouter from './modules/organizations/organizations.routes';
 import clientsRouter from './modules/clients/clients.routes';
 import projectsRouter from './modules/projects/projects.routes';
 import deliverablesRouter from './modules/deliverables/deliverables.routes';
-import { filesRouter } from './modules/files/files.routes';
 import { billingRouter, stripeWebhookRouter } from './modules/billing/billing.routes';
 import monitoringRouter from './modules/monitoring/monitoring.routes';
 
@@ -126,7 +125,6 @@ export function createApp(): Application {
   app.use('/api/clients', clientsRouter);
   app.use('/api/projects', projectsRouter);
   app.use('/api', deliverablesRouter);
-  app.use('/api/files', filesRouter);
   app.use('/api/billing', billingRouter);
   app.use('/api/monitoring', monitoringRouter);
 

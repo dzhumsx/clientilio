@@ -17,7 +17,7 @@ export class ClientService {
     if (!org) throw new NotFoundError('Organization');
 
     const limits = getPlanLimits(org.planId);
-    if (org._count.clients >= limits.maxActiveClients) {
+    if (limits.maxActiveClients !== -1 && org._count.clients >= limits.maxActiveClients) {
       throw new PlanLimitError('active_clients', org._count.clients, limits.maxActiveClients);
     }
 
@@ -146,7 +146,7 @@ export class ClientService {
     if (!org) throw new NotFoundError('Organization');
 
     const limits = getPlanLimits(org.planId);
-    if (org._count.clients >= limits.maxActiveClients) {
+    if (limits.maxActiveClients !== -1 && org._count.clients >= limits.maxActiveClients) {
       throw new PlanLimitError('active_clients', org._count.clients, limits.maxActiveClients);
     }
 
@@ -157,5 +157,19 @@ export class ClientService {
         _count: { select: { projects: true } },
       },
     });
+  }
+
+  async delete(orgId: string, clientId: string) {
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, organizationId: orgId },
+    });
+
+    if (!client) throw new NotFoundError('Client');
+
+    await prisma.client.delete({
+      where: { id: clientId },
+    });
+
+    return { success: true };
   }
 }

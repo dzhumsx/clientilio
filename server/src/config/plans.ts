@@ -1,4 +1,4 @@
-export type PlanId = 'free' | 'pro' | 'business' | 'agency' | 'agency_pro';
+export type PlanId = 'free' | 'pro' | 'business' | 'agency';
 
 // Plan definitions — centralized, not hardcoded in business logic
 export interface PlanDefinition {
@@ -13,7 +13,6 @@ export interface PlanLimits {
   maxActiveClients: number;
   maxActiveProjects: number;
   maxTeamMembers: number;
-  maxStorageMb: number;
   whiteLabel: boolean;
   customDomain: boolean;
   removeBranding: boolean;
@@ -33,7 +32,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       maxActiveClients: 2,
       maxActiveProjects: 3,
       maxTeamMembers: 2,
-      maxStorageMb: 100,
       whiteLabel: false,
       customDomain: false,
       removeBranding: false,
@@ -52,7 +50,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       maxActiveClients: 10,
       maxActiveProjects: 25,
       maxTeamMembers: 5,
-      maxStorageMb: 1024,
       whiteLabel: false,
       customDomain: false,
       removeBranding: false,
@@ -71,7 +68,6 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       maxActiveClients: 30,
       maxActiveProjects: 100,
       maxTeamMembers: 15,
-      maxStorageMb: 5120,
       whiteLabel: true,
       customDomain: true,
       removeBranding: true,
@@ -87,29 +83,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     priceUsd: 40,
     priceBRL: 239,
     limits: {
-      maxActiveClients: 100,
-      maxActiveProjects: 500,
-      maxTeamMembers: 50,
-      maxStorageMb: 20480,
-      whiteLabel: true,
-      customDomain: true,
-      removeBranding: true,
-      advancedPermissions: true,
-      templates: 'full',
-      automations: 'advanced',
-      reports: 'advanced',
-    },
-  },
-  agency_pro: {
-    id: 'agency_pro',
-    name: 'Agency Pro',
-    priceUsd: 40,
-    priceBRL: 239,
-    limits: {
-      maxActiveClients: 100,
-      maxActiveProjects: 500,
-      maxTeamMembers: 50,
-      maxStorageMb: 20480,
+      maxActiveClients: -1, // Ilimitado
+      maxActiveProjects: -1,
+      maxTeamMembers: -1,
       whiteLabel: true,
       customDomain: true,
       removeBranding: true,
@@ -122,11 +98,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 };
 
 export function getPlan(planId: string): PlanDefinition | undefined {
-  if (planId === 'agency_pro') return PLANS.agency_pro;
   return PLANS[planId as PlanId] ?? PLANS.agency;
 }
 
 export function getPlanLimits(planId: string): PlanLimits {
-  if (planId === 'agency_pro' || planId === 'agency') return PLANS.agency.limits;
   return PLANS[planId as PlanId]?.limits ?? PLANS.agency.limits;
 }

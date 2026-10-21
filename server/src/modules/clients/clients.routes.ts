@@ -71,4 +71,14 @@ router.post('/:id/reactivate', ...orgMiddleware, async (req: Request, res: Respo
   }
 });
 
+// DELETE /api/clients/:id
+router.delete('/:id', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await clientService.delete(req.organizationId!, req.params.id as string);
+    res.json({ message: 'Client permanently deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

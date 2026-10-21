@@ -78,7 +78,7 @@ export const CookieConsent: React.FC = () => {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
               <span className="eyebrow" style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 600 }}>
-                PRIVACIDADE & ARMAZENAMENTO
+                PRIVACIDADE & SESSÃO
               </span>
               <span className="badge badge-success" style={{ fontSize: '10px', padding: '0.1rem 0.45rem' }}>
                 ESSENCIAL
@@ -86,7 +86,7 @@ export const CookieConsent: React.FC = () => {
             </div>
 
             <p style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-secondary)', margin: 0 }}>
-              Utilizamos cookies estritamente necessários para autenticação contínua (sessão de 6 horas) e integridade dos serviços. Em conformidade com as diretrizes de segurança, <strong>nenhum cookie é armazenado no seu dispositivo sem o seu consentimento prévio</strong>.
+              Utilizamos cookies estritamente necessários para autenticação contínua (sessão de 6 horas) e integridade dos serviços. Em conformidade com as diretrizes de segurança, <strong>nenhum cookie é gravado no seu navegador sem a sua autorização prévia</strong>.
             </p>
           </div>
         </div>

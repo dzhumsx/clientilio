@@ -18,6 +18,7 @@ import {
   Palette
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { Logo, LogoIcon } from '../components/Logo';
 
 export const LandingPage: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -28,7 +29,7 @@ export const LandingPage: React.FC = () => {
       price: 'R$ 0',
       period: 'para sempre',
       desc: 'Para freelancers e profissionais autônomos no início.',
-      features: ['2 clientes ativos', '3 projetos simultâneos', '2 membros na equipe', '100 MB de armazenamento', 'Portal do cliente padrão'],
+      features: ['2 clientes ativos', '3 projetos simultâneos', 'Links ilimitados (Figma, Canva, Drive)', 'Portal do cliente padrão'],
       highlight: false,
     },
     {
@@ -36,15 +37,15 @@ export const LandingPage: React.FC = () => {
       price: 'R$ 59',
       period: '/mês',
       desc: 'Para criativos experientes e estúdios em crescimento.',
-      features: ['10 clientes ativos', '25 projetos simultâneos', '5 membros na equipe', '1 GB de armazenamento', 'Histórico de versões de arquivos', 'Notificações automáticas por email'],
+      features: ['10 clientes ativos', '25 projetos simultâneos', '2 membros na equipe', 'Histórico de versões de entregáveis', 'Notificações automáticas por email'],
       highlight: false,
     },
     {
       name: 'Business',
       price: 'R$ 119',
       period: '/mês',
-      desc: 'Para agências de marketing que exigem portal white-label.',
-      features: ['30 clientes ativos', '100 projetos simultâneos', '15 membros na equipe', '5 GB de armazenamento', 'White-label com a sua marca', 'Aprovações ilimitadas'],
+      desc: 'Para agências de marketing com maiores volumes.',
+      features: ['30 clientes ativos', '100 projetos simultâneos', '5 membros na equipe', 'Aprovações ilimitadas'],
       highlight: false,
     },
     {
@@ -52,7 +53,7 @@ export const LandingPage: React.FC = () => {
       price: 'R$ 239',
       period: '/mês',
       desc: 'Para agências full-service com alto volume de clientes e campanhas.',
-      features: ['100 clientes ativos', '500 projetos simultâneos', '50 membros de equipe', '20 GB de armazenamento', 'White-label completo', 'Relatórios executivos', 'Suporte com SLA prioritário'],
+      features: ['Clientes ativos ilimitados', 'Projetos simultâneos ilimitados', 'Membros de equipe ilimitados', 'Relatórios executivos', 'Suporte com SLA prioritário'],
       highlight: true,
       tag: 'MAIS POPULAR',
     },
@@ -85,41 +86,8 @@ export const LandingPage: React.FC = () => {
           }}
         >
           {/* Brand Mark with Emerald Green Accent */}
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <div
-              style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '6px',
-                background: 'var(--accent-primary)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: 900,
-                boxShadow: 'var(--accent-glow)',
-              }}
-            >
-              ▲
-            </div>
-            <span style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Nexora
-            </span>
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px',
-                color: 'var(--accent-primary)',
-                background: 'var(--accent-subtle)',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                border: '1px solid var(--accent-border)',
-                letterSpacing: '0.04em',
-              }}
-            >
-              AGENCY
-            </span>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+            <Logo size={26} textSize="16px" />
           </Link>
 
           {/* Nav Links */}
@@ -133,9 +101,6 @@ export const LandingPage: React.FC = () => {
             <a href="#pricing" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
               Planos
             </a>
-            <Link to="/portal" style={{ fontSize: '14px', color: 'var(--accent-primary)', fontWeight: 500 }}>
-              Portal Demo
-            </Link>
           </nav>
 
           {/* Action Cluster */}
@@ -217,10 +182,6 @@ export const LandingPage: React.FC = () => {
                 <Check size={14} style={{ color: 'var(--accent-primary)' }} />
                 <span>SEM CARTÃO PARA TESTAR</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Check size={14} style={{ color: 'var(--accent-primary)' }} />
-                <span>WHITE-LABEL PERSONALIZÁVEL</span>
-              </div>
             </div>
           </div>
 
@@ -255,7 +216,7 @@ export const LandingPage: React.FC = () => {
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
               </div>
-              <span style={{ color: 'var(--text-secondary)' }}>PORTAL DO CLIENTE • NEXORA</span>
+              <span style={{ color: 'var(--text-secondary)' }}>PORTAL DO CLIENTE • Marketiv.io</span>
             </div>
 
             {/* Campaign Header */}
@@ -478,18 +439,6 @@ export const LandingPage: React.FC = () => {
               Envio de layouts do Figma, vídeos do Drive e copys com versionamento formal (v1, v2, v3), registro de aprovação e solicitação de ajustes.
             </p>
           </div>
-
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '6px', background: 'var(--accent-subtle)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
-                <ShieldCheck size={16} />
-              </div>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Portal White-Label Exclusivo</h3>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.55, margin: 0 }}>
-              Ofereça aos clientes um portal seguro com a identidade visual da sua agência, transmitindo autoridade e posicionamento premium.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -596,12 +545,12 @@ export const LandingPage: React.FC = () => {
               ▲
             </div>
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Nexora — Gestão para Agências & Criativos
+              Marketiv.io — Gestão para Agências & Criativos
             </span>
           </div>
 
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'var(--font-mono)' }}>
-            © {new Date().getFullYear()} Nexora. Feito para estúdios e agências de alta performance.
+            © {new Date().getFullYear()} Marketiv.io. Feito para estúdios e agências de alta performance.
           </p>
         </div>
       </footer>

@@ -62,7 +62,7 @@ export class DeliverableService {
     });
     if (!project) throw new NotFoundError('Project');
 
-    return prisma.deliverable.create({
+    const deliverable = await prisma.deliverable.create({
       data: {
         organizationId: orgId,
         projectId: input.projectId,
@@ -72,12 +72,38 @@ export class DeliverableService {
         createdById: userId,
       },
     });
+
+    if (input.initialExternalUrl || input.initialNotes) {
+      await prisma.deliverableVersion.create({
+        data: {
+          organizationId: orgId,
+          deliverableId: deliverable.id,
+          versionNumber: 1,
+          externalUrl: input.initialExternalUrl || undefined,
+          notes: input.initialNotes || undefined,
+          createdById: userId,
+        },
+      });
+    }
+
+    return prisma.deliverable.findUnique({
+      where: { id: deliverable.id },
+      include: {
+        versions: { orderBy: { versionNumber: 'desc' } },
+        _count: { select: { versions: true, approvals: true } },
+      },
+    });
   }
 
-  async listByProject(orgId: string, projectId?: string) {
+  async listByProject(orgId: string, projectId?: string, status?: string) {
     const where: any = { organizationId: orgId };
     if (projectId) {
       where.projectId = projectId;
+    }
+    if (status === 'ARCHIVED') {
+      where.status = 'ARCHIVED';
+    } else {
+      where.status = { not: 'ARCHIVED' };
     }
     return prisma.deliverable.findMany({
       where,
@@ -131,6 +157,65 @@ export class DeliverableService {
         },
         project: { select: { id: true, name: true } },
       },
+    });
+  }
+
+  async archive(orgId: string, deliverableId: string) {
+    const deliverable = await prisma.deliverable.findFirst({
+      where: { id: deliverableId, organizationId: orgId },
+    });
+    if (!deliverable) throw new NotFoundError('Deliverable');
+
+    return prisma.deliverable.update({
+      where: { id: deliverableId },
+      data: { status: 'ARCHIVED' },
+      include: {
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+        },
+        project: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async reactivate(orgId: string, deliverableId: string) {
+    const deliverable = await prisma.deliverable.findFirst({
+      where: { id: deliverableId, organizationId: orgId },
+    });
+    if (!deliverable) throw new NotFoundError('Deliverable');
+
+    return prisma.deliverable.update({
+      where: { id: deliverableId },
+      data: { status: 'DRAFT' },
+      include: {
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+        },
+        project: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async delete(orgId: string, deliverableId: string) {
+    const deliverable = await prisma.deliverable.findFirst({
+      where: { id: deliverableId, organizationId: orgId },
+    });
+    if (!deliverable) throw new NotFoundError('Deliverable');
+
+    await prisma.approval.deleteMany({
+      where: { deliverableId },
+    });
+    await prisma.deliverableVersion.deleteMany({
+      where: { deliverableId },
+    });
+    await prisma.comment.deleteMany({
+      where: { resourceType: 'deliverable', resourceId: deliverableId },
+    });
+
+    return prisma.deliverable.delete({
+      where: { id: deliverableId },
     });
   }
 

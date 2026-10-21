@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2, Trash2 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -98,9 +99,12 @@ export const ClientsPage: React.FC = () => {
       fetchClients();
     } catch (err: any) {
       console.error('Failed to save client:', err);
+      const isLimit = err.response?.data?.error?.code === 'PLAN_LIMIT_REACHED';
       setFormError(
         err.response?.data?.error?.message ||
-        'Erro ao salvar cliente. Verifique os dados ou o limite do seu plano.'
+        (isLimit
+          ? 'Limite de clientes do seu plano ativo atingido. Faça upgrade para cadastrar novos clientes.'
+          : 'Erro ao salvar cliente. Verifique os dados fornecidos.')
       );
     } finally {
       setSubmitting(false);
@@ -128,6 +132,24 @@ export const ClientsPage: React.FC = () => {
       console.error('Failed to toggle client archive status:', err);
       toast.error(err.response?.data?.error?.message || 'Erro ao alterar status');
       fetchClients();
+    }
+  };
+
+  const handleDeleteClient = async (client: Client) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir permanentemente o cliente "${client.name}"?\n\nATENÇÃO: Todos os projetos, tarefas, entregáveis e arquivos vinculados serão excluídos em definitivo do banco de dados.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/clients/${client.id}`);
+      toast.success('Cliente excluído permanentemente.');
+      setIsModalOpen(false);
+      setEditingClient(null);
+      fetchClients();
+    } catch (err: any) {
+      console.error('Failed to delete client:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao excluir cliente permanentemente.');
     }
   };
 
@@ -294,8 +316,13 @@ export const ClientsPage: React.FC = () => {
       >
         <form onSubmit={handleSaveClient} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {formError && (
-            <div style={{ backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid rgba(225, 29, 72, 0.25)', padding: '0.65rem', borderRadius: 'var(--radius-md)', fontSize: '12px' }}>
-              {formError}
+            <div style={{ backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid rgba(225, 29, 72, 0.25)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <span>{formError}</span>
+              {(formError.includes('upgrade') || formError.includes('Limite')) && (
+                <Link to="/dashboard/billing" style={{ color: 'var(--accent-primary)', fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid var(--accent-primary)', width: 'fit-content', marginTop: '0.2rem' }}>
+                  Ver Opções de Planos & Upgrade →
+                </Link>
+              )}
             </div>
           )}
 
@@ -348,20 +375,68 @@ export const ClientsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingClient(null);
-              }}
-              className="btn btn-ghost btn-sm"
-            >
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
-            </button>
+          <div style={{ display: 'flex', justifyContent: editingClient ? 'space-between' : 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', flexWrap: 'wrap' }}>
+            {editingClient && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteClient(editingClient)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Excluir permanentemente do banco"
+                >
+                  <Trash2 size={13} />
+                  <span>Excluir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleArchiveToggle(editingClient);
+                    setIsModalOpen(false);
+                    setEditingClient(null);
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-hairline)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={editingClient.status === 'ACTIVE' ? 'Ocultar e enviar para aba de arquivados' : 'Reativar cliente'}
+                >
+                  {editingClient.status === 'ACTIVE' ? <Archive size={13} /> : <RefreshCw size={13} />}
+                  <span>{editingClient.status === 'ACTIVE' ? 'Arquivar' : 'Reativar'}</span>
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingClient(null);
+                }}
+                className="btn btn-ghost btn-sm"
+              >
+                Cancelar
+              </button>
+              <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
+                {submitting ? 'Salvando...' : editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>

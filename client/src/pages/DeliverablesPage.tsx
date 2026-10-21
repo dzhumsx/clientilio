@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle2, Upload, ExternalLink, FileText, Send, Edit2, Layers } from 'lucide-react';
+import { Plus, CheckCircle2, ExternalLink, FileText, Send, Edit2, Layers, Link2, Trash2, Archive, RefreshCw } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -13,6 +13,7 @@ export const DeliverablesPage: React.FC = () => {
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ARCHIVED'>('ACTIVE');
   const [loading, setLoading] = useState(true);
 
   // Deliverable Modal (Create & Edit)
@@ -21,6 +22,8 @@ export const DeliverablesPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [clientVisible, setClientVisible] = useState(true);
+  const [initialExternalUrl, setInitialExternalUrl] = useState('');
+  const [initialVersionNotes, setInitialVersionNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export const DeliverablesPage: React.FC = () => {
       const projId = selectedProjectId || (projs.length > 0 ? projs[0].id : '');
       if (projId) {
         setSelectedProjectId(projId);
-        const delivRes = await api.get(`/deliverables?projectId=${projId}`);
+        const delivRes = await api.get(`/deliverables?projectId=${projId}&status=${statusFilter}`);
         setDeliverables(delivRes.data || []);
       } else {
         setDeliverables([]);
@@ -56,7 +59,44 @@ export const DeliverablesPage: React.FC = () => {
 
   useEffect(() => {
     fetchProjectsAndDeliverables();
-  }, [currentOrg, selectedProjectId]);
+  }, [currentOrg, selectedProjectId, statusFilter]);
+
+  const handleDeleteDeliverable = async (deliv: Deliverable) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir permanentemente o entregável "${deliv.title}"?\n\nATENÇÃO: Todas as versões, arquivos, comentários e aprovações deste entregável serão excluídos em definitivo.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/deliverables/${deliv.id}`);
+      toast.success('Entregável excluído permanentemente.');
+      setIsModalOpen(false);
+      setEditingDeliverable(null);
+      fetchProjectsAndDeliverables();
+    } catch (err: any) {
+      console.error('Failed to delete deliverable:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao excluir entregável permanentemente.');
+    }
+  };
+
+  const handleArchiveDeliverable = async (deliv: Deliverable) => {
+    try {
+      const isArchived = deliv.status === 'ARCHIVED';
+      if (isArchived) {
+        await api.post(`/deliverables/${deliv.id}/reactivate`);
+        toast.success('Entregável reativado.');
+      } else {
+        await api.post(`/deliverables/${deliv.id}/archive`);
+        toast.success('Entregável arquivado.');
+      }
+      setIsModalOpen(false);
+      setEditingDeliverable(null);
+      fetchProjectsAndDeliverables();
+    } catch (err: any) {
+      console.error('Failed to toggle deliverable archive status:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao alterar status de arquivamento.');
+    }
+  };
 
   const handleOpenCreateDeliverable = () => {
     if (projects.length === 0) {
@@ -67,6 +107,8 @@ export const DeliverablesPage: React.FC = () => {
     setTitle('');
     setDescription('');
     setClientVisible(true);
+    setInitialExternalUrl('');
+    setInitialVersionNotes('');
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -105,10 +147,12 @@ export const DeliverablesPage: React.FC = () => {
           title,
           description: description || undefined,
           clientVisible,
+          initialExternalUrl: initialExternalUrl || undefined,
+          initialNotes: initialVersionNotes || undefined,
         });
 
         setDeliverables((prev) => [newDeliv, ...prev]);
-        toast.success('Entregável criado com sucesso.');
+        toast.success('Entregável criado com versão inicial.');
         setIsModalOpen(false);
       }
 
@@ -235,16 +279,60 @@ export const DeliverablesPage: React.FC = () => {
             </select>
           </div>
 
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.6875rem',
-              color: 'var(--text-tertiary)',
-              letterSpacing: '0.05em',
-            }}
-          >
-            {deliverables.length} {deliverables.length === 1 ? 'ITEM' : 'ITENS'} NESTE PROJETO
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                backgroundColor: 'var(--bg-card)',
+                border: '1px solid var(--border-hairline)',
+                borderRadius: 'var(--radius-button)',
+                padding: '2px',
+                gap: '2px',
+              }}
+            >
+              <button
+                onClick={() => setStatusFilter('ACTIVE')}
+                className="btn btn-sm"
+                style={{
+                  backgroundColor: statusFilter === 'ACTIVE' ? 'var(--bg-surface)' : 'transparent',
+                  color: statusFilter === 'ACTIVE' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  boxShadow: statusFilter === 'ACTIVE' ? 'var(--shadow-subtle)' : 'none',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  padding: '0.25rem 0.65rem',
+                }}
+              >
+                Ativos
+              </button>
+              <button
+                onClick={() => setStatusFilter('ARCHIVED')}
+                className="btn btn-sm"
+                style={{
+                  backgroundColor: statusFilter === 'ARCHIVED' ? 'var(--bg-surface)' : 'transparent',
+                  color: statusFilter === 'ARCHIVED' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  boxShadow: statusFilter === 'ARCHIVED' ? 'var(--shadow-subtle)' : 'none',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  padding: '0.25rem 0.65rem',
+                }}
+              >
+                Arquivados
+              </button>
+            </div>
+
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem',
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.05em',
+              }}
+            >
+              {deliverables.length} {deliverables.length === 1 ? 'ITEM' : 'ITENS'} {statusFilter === 'ARCHIVED' ? 'ARQUIVADOS' : 'NESTE PROJETO'}
+            </span>
+          </div>
         </div>
 
         {/* Deliverables List */}
@@ -395,7 +483,7 @@ export const DeliverablesPage: React.FC = () => {
                       }}
                       className="btn btn-secondary btn-sm"
                     >
-                      <Upload size={13} />
+                      <ExternalLink size={13} />
                       <span>Nova Versão</span>
                     </button>
                   </div>
@@ -619,34 +707,140 @@ export const DeliverablesPage: React.FC = () => {
           </div>
 
           {!editingDeliverable && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input
-                type="checkbox"
-                id="clientVis"
-                checked={clientVisible}
-                onChange={(e) => setClientVisible(e.target.checked)}
-                style={{ width: 'auto' }}
-              />
-              <label htmlFor="clientVis" style={{ fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                Disponibilizar no portal do cliente imediatamente
-              </label>
-            </div>
+            <>
+              <div
+                style={{
+                  padding: '1rem',
+                  background: 'var(--bg-subtle)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-hairline)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.875rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      letterSpacing: '0.071em',
+                      textTransform: 'uppercase',
+                      color: 'var(--accent-primary)',
+                    }}
+                  >
+                    VERSÃO INICIAL (v1)
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.625rem',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    LINK DO MATERIAL
+                  </span>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
+                    Link do Material (Figma, Canva, Google Drive, Loom, YouTube)
+                  </label>
+                  <input
+                    type="url"
+                    value={initialExternalUrl}
+                    onChange={(e) => setInitialExternalUrl(e.target.value)}
+                    placeholder="https://www.figma.com/file/... ou link do Google Drive / Canva"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
+                    Notas da Versão Inicial (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={initialVersionNotes}
+                    onChange={(e) => setInitialVersionNotes(e.target.value)}
+                    placeholder="Ex: Primeira proposta de layout pronta para aprovação"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  id="clientVis"
+                  checked={clientVisible}
+                  onChange={(e) => setClientVisible(e.target.checked)}
+                  style={{ width: 'auto' }}
+                />
+                <label htmlFor="clientVis" style={{ fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                  Disponibilizar no portal do cliente imediatamente
+                </label>
+              </div>
+            </>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingDeliverable(null);
-              }}
-              className="btn btn-secondary btn-sm"
-            >
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : editingDeliverable ? 'Salvar Alterações' : 'Criar Entregável'}
-            </button>
+          <div style={{ display: 'flex', justifyContent: editingDeliverable ? 'space-between' : 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', flexWrap: 'wrap' }}>
+            {editingDeliverable && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDeliverable(editingDeliverable)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Excluir permanentemente do banco"
+                >
+                  <Trash2 size={13} />
+                  <span>Excluir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleArchiveDeliverable(editingDeliverable)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-hairline)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={editingDeliverable.status === 'ARCHIVED' ? 'Reativar entregável' : 'Ocultar e enviar para arquivados'}
+                >
+                  {editingDeliverable.status === 'ARCHIVED' ? <RefreshCw size={13} /> : <Archive size={13} />}
+                  <span>{editingDeliverable.status === 'ARCHIVED' ? 'Reativar' : 'Arquivar'}</span>
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingDeliverable(null);
+                }}
+                className="btn btn-secondary btn-sm"
+              >
+                Cancelar
+              </button>
+              <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
+                {submitting ? 'Salvando...' : editingDeliverable ? 'Salvar Alterações' : 'Criar Entregável'}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
@@ -668,13 +862,14 @@ export const DeliverablesPage: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
-              Link Externo (Figma, Loom, Google Drive, Canva)
+              Link do Material (Figma, Canva, Google Drive, Loom, YouTube) *
             </label>
             <input
               type="url"
+              required
               value={externalUrl}
               onChange={(e) => setExternalUrl(e.target.value)}
-              placeholder="https://www.figma.com/file/..."
+              placeholder="https://www.figma.com/file/... ou Google Drive"
             />
           </div>
 

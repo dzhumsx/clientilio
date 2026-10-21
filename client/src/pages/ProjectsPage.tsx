@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers } from 'lucide-react';
+import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -29,12 +29,13 @@ export const ProjectsPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = async (filter: string = statusFilter) => {
     if (!currentOrg) return;
     setLoading(true);
     try {
       // Sequential queries to avoid PGlite lock collision
-      const projRes = await api.get('/projects');
+      const isArchived = filter === 'ARCHIVED';
+      const projRes = await api.get(`/projects?status=${isArchived ? 'ARCHIVED' : 'ALL'}`);
       setProjects(projRes.data.projects || projRes.data.data || []);
 
       const clientRes = await api.get('/clients?status=ACTIVE');
@@ -51,8 +52,45 @@ export const ProjectsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [currentOrg]);
+    fetchData(statusFilter);
+  }, [currentOrg, statusFilter]);
+
+  const handleDeleteProject = async (proj: Project) => {
+    const confirmed = window.confirm(
+      `Tem certeza que deseja excluir permanentemente o projeto "${proj.name}"?\n\nATENÇÃO: Todos os entregáveis, versões, tarefas e comentários deste projeto serão excluídos permanentemente.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/projects/${proj.id}`);
+      toast.success('Projeto excluído permanentemente.');
+      setIsModalOpen(false);
+      setEditingProject(null);
+      fetchData(statusFilter);
+    } catch (err: any) {
+      console.error('Failed to delete project:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao excluir projeto permanentemente.');
+    }
+  };
+
+  const handleArchiveProject = async (proj: Project) => {
+    try {
+      const isArchived = proj.status === 'ARCHIVED';
+      if (isArchived) {
+        await api.post(`/projects/${proj.id}/reactivate`);
+        toast.success('Projeto reativado.');
+      } else {
+        await api.post(`/projects/${proj.id}/archive`);
+        toast.success('Projeto arquivado.');
+      }
+      setIsModalOpen(false);
+      setEditingProject(null);
+      fetchData(statusFilter);
+    } catch (err: any) {
+      console.error('Failed to toggle archive status:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao alterar status de arquivamento.');
+    }
+  };
 
   const handleOpenCreate = () => {
     if (clients.length === 0) {
@@ -124,9 +162,12 @@ export const ProjectsPage: React.FC = () => {
       fetchData();
     } catch (err: any) {
       console.error('Failed to save project:', err);
+      const isLimit = err.response?.data?.error?.code === 'PLAN_LIMIT_REACHED';
       setFormError(
         err.response?.data?.error?.message ||
-        'Erro ao salvar projeto. Verifique os dados ou o limite do plano da agência.'
+        (isLimit
+          ? 'Limite de projetos do seu plano ativo atingido. Faça upgrade para iniciar novas campanhas.'
+          : 'Erro ao salvar projeto. Verifique os dados fornecidos.')
       );
     } finally {
       setSubmitting(false);
@@ -134,17 +175,18 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const filteredProjects = projects.filter((p) => {
-    if (statusFilter === 'ALL') return true;
+    if (statusFilter === 'ALL' || statusFilter === 'ARCHIVED') return true;
     return p.status === statusFilter;
   });
 
   const filterTabs = [
-    { id: 'ALL', label: 'TODOS', count: projects.length },
+    { id: 'ALL', label: 'TODOS', count: statusFilter === 'ARCHIVED' ? 0 : projects.length },
     { id: 'IN_PROGRESS', label: 'EM ANDAMENTO', count: projects.filter(p => p.status === 'IN_PROGRESS').length },
     { id: 'REVIEW', label: 'EM REVISÃO', count: projects.filter(p => p.status === 'REVIEW').length },
     { id: 'PLANNING', label: 'PLANEJAMENTO', count: projects.filter(p => p.status === 'PLANNING').length },
     { id: 'COMPLETED', label: 'CONCLUÍDOS', count: projects.filter(p => p.status === 'COMPLETED').length },
     { id: 'ON_HOLD', label: 'PAUSADOS', count: projects.filter(p => p.status === 'ON_HOLD').length },
+    { id: 'ARCHIVED', label: 'ARQUIVADOS', count: statusFilter === 'ARCHIVED' ? projects.length : 0 },
   ];
 
   return (
@@ -437,14 +479,21 @@ export const ProjectsPage: React.FC = () => {
               style={{
                 background: 'rgba(239, 68, 68, 0.08)',
                 color: '#ef4444',
-                padding: '0.75rem',
+                padding: '0.75rem 0.85rem',
                 borderRadius: '6px',
                 fontSize: '0.8125rem',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
-                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.35rem',
               }}
             >
-              {formError}
+              <span>{formError}</span>
+              {(formError.includes('upgrade') || formError.includes('Limite')) && (
+                <Link to="/dashboard/billing" style={{ color: 'var(--accent-primary)', fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid var(--accent-primary)', width: 'fit-content', marginTop: '0.2rem' }}>
+                  Ver Opções de Planos & Upgrade →
+                </Link>
+              )}
             </div>
           )}
 
@@ -546,20 +595,64 @@ export const ProjectsPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingProject(null);
-              }}
-              className="btn btn-secondary btn-sm"
-            >
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : editingProject ? 'Salvar Alterações' : 'Criar Projeto'}
-            </button>
+          <div style={{ display: 'flex', justifyContent: editingProject ? 'space-between' : 'flex-end', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', flexWrap: 'wrap' }}>
+            {editingProject && (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteProject(editingProject)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="Excluir permanentemente do banco"
+                >
+                  <Trash2 size={13} />
+                  <span>Excluir</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleArchiveProject(editingProject)}
+                  className="btn btn-sm"
+                  style={{
+                    backgroundColor: 'var(--bg-subtle)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-hairline)',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={editingProject.status === 'ARCHIVED' ? 'Reativar projeto' : 'Ocultar e enviar para arquivados'}
+                >
+                  {editingProject.status === 'ARCHIVED' ? <RefreshCw size={13} /> : <Archive size={13} />}
+                  <span>{editingProject.status === 'ARCHIVED' ? 'Reativar' : 'Arquivar'}</span>
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingProject(null);
+                }}
+                className="btn btn-secondary btn-sm"
+              >
+                Cancelar
+              </button>
+              <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
+                {submitting ? 'Salvando...' : editingProject ? 'Salvar Alterações' : 'Criar Projeto'}
+              </button>
+            </div>
           </div>
         </form>
       </Modal>

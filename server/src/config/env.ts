@@ -22,8 +22,6 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional().default(''),
   STRIPE_PUBLISHABLE_KEY: z.string().optional().default(''),
   STRIPE_WEBHOOK_SECRET: z.string().optional().default(''),
-  UPLOAD_DIR: z.string().default('./uploads'),
-  MAX_FILE_SIZE_MB: z.coerce.number().default(10),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
   BCRYPT_SALT_ROUNDS: z.coerce.number().default(12),

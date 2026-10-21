@@ -12,6 +12,9 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { DeliverablesPage } from './pages/DeliverablesPage';
 import { BillingPage } from './pages/BillingPage';
 import { ClientPortalPage } from './pages/ClientPortalPage';
+import { TeamPage } from './pages/TeamPage';
+import { AcceptInvitePage } from './pages/AcceptInvitePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
 import { Toaster } from 'react-hot-toast';
 import { CookieConsent } from './components/CookieConsent';
@@ -43,6 +46,7 @@ export const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/portal" element={<ClientPortalPage />} />
+          <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
           {/* Protected Agency Dashboard Routes */}
           <Route path="/dashboard" element={<DashboardLayout />}>
@@ -50,11 +54,12 @@ export const App: React.FC = () => {
             <Route path="clients" element={<ClientsPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="deliverables" element={<DeliverablesPage />} />
+            <Route path="team" element={<TeamPage />} />
             <Route path="billing" element={<BillingPage />} />
           </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* 404 Not Found Fallback */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
       </AuthProvider>

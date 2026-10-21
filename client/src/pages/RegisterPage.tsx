@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, Mail, User, Building2, AlertCircle, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { Logo, LogoIcon } from '../components/Logo';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -71,31 +72,10 @@ export const RegisterPage: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
             textDecoration: 'none',
-            color: 'var(--text-primary)',
           }}
         >
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '5px',
-              background: 'var(--accent-primary)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.6875rem',
-              fontWeight: 900,
-              boxShadow: 'var(--accent-glow)',
-            }}
-          >
-            ▲
-          </div>
-          <span style={{ fontWeight: 600, fontSize: '0.875rem', letterSpacing: '-0.02em' }}>
-            NEXORA
-          </span>
+          <Logo size={22} textSize="0.875rem" />
         </Link>
 
         <button
@@ -127,23 +107,8 @@ export const RegisterPage: React.FC = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '8px',
-              background: 'var(--accent-primary)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1rem',
-              fontSize: '1.1rem',
-              fontWeight: 900,
-              boxShadow: 'var(--accent-glow)',
-            }}
-          >
-            ▲
+          <div style={{ margin: '0 auto 1rem', display: 'flex', justifyContent: 'center' }}>
+            <LogoIcon size={42} />
           </div>
           <h2
             style={{

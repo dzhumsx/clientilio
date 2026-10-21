@@ -272,14 +272,20 @@ export const BillingPage: React.FC = () => {
               <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: '6px', border: '1px solid var(--border-hairline)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginBottom: '0.5rem' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>CLIENTES ATIVOS</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{billing.usage.clients} / {billing.limits.maxActiveClients}</strong>
+                  <strong style={{ color: 'var(--text-primary)' }}>
+                    {billing.limits.maxActiveClients === -1
+                      ? `${billing.usage.clients} / Ilimitado`
+                      : `${billing.usage.clients} / ${billing.limits.maxActiveClients}`}
+                  </strong>
                 </div>
                 <div style={{ height: '4px', background: 'var(--border-hairline)', borderRadius: '2px', overflow: 'hidden' }}>
                   <div
                     style={{
-                      width: `${Math.min(100, (billing.usage.clients / billing.limits.maxActiveClients) * 100)}%`,
+                      width: billing.limits.maxActiveClients === -1
+                        ? '100%'
+                        : `${Math.min(100, (billing.usage.clients / billing.limits.maxActiveClients) * 100)}%`,
                       height: '100%',
-                      background: 'var(--text-primary)',
+                      background: 'var(--accent-primary)',
                       transition: 'width 0.3s ease',
                     }}
                   />
@@ -317,17 +323,6 @@ export const BillingPage: React.FC = () => {
                       transition: 'width 0.3s ease',
                     }}
                   />
-                </div>
-              </div>
-
-              {/* Storage card preserved with display: 'none' */}
-              <div style={{ background: 'var(--bg-subtle)', padding: '1rem', borderRadius: '6px', display: 'none' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontFamily: 'var(--font-mono)', marginBottom: '0.5rem' }}>
-                  <span>ARMAZENAMENTO</span>
-                  <strong>{billing.limits.maxStorageMb} MB</strong>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
-                  White-label: {billing.limits.whiteLabel ? 'Ativo' : 'Não incluso'}
                 </div>
               </div>
             </div>
@@ -441,7 +436,7 @@ export const BillingPage: React.FC = () => {
                     >
                       <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Check size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                        <span>Até {p.limits.maxActiveClients} clientes ativos</span>
+                        <span>{p.limits.maxActiveClients === -1 ? 'Clientes ativos ilimitados' : `Até ${p.limits.maxActiveClients} clientes ativos`}</span>
                       </li>
                       <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Check size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
@@ -453,19 +448,7 @@ export const BillingPage: React.FC = () => {
                       </li>
                       <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Check size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
-                        <span>{p.limits.maxStorageMb} MB de armazenamento</span>
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Check
-                          size={13}
-                          style={{
-                            color: p.limits.whiteLabel ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span style={{ color: p.limits.whiteLabel ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                          White-label {p.limits.whiteLabel ? 'incluído' : 'não incluso'}
-                        </span>
+                        <span>Entregáveis e links ilimitados</span>
                       </li>
                     </ul>
 

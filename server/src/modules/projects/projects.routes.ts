@@ -56,4 +56,34 @@ router.put('/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res
   }
 });
 
+// POST /api/projects/:id/archive
+router.post('/:id/archive', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const project = await projectService.archive(req.organizationId!, req.params.id as string);
+    res.json(project);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/projects/:id/reactivate
+router.post('/:id/reactivate', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const project = await projectService.reactivate(req.organizationId!, req.params.id as string);
+    res.json(project);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/projects/:id
+router.delete('/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await projectService.delete(req.organizationId!, req.params.id as string);
+    res.json({ message: 'Project permanently deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

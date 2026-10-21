@@ -46,7 +46,6 @@ export class BillingService {
         maxActiveClients: limits.maxActiveClients,
         maxActiveProjects: limits.maxActiveProjects,
         maxTeamMembers: limits.maxTeamMembers,
-        maxStorageMb: limits.maxStorageMb,
         whiteLabel: limits.whiteLabel,
         customDomain: limits.customDomain,
       },
@@ -148,7 +147,9 @@ export class BillingService {
             currency: 'brl',
             product_data: {
               name: `Plano ${targetPlan.name} — Gestão de Clientes`,
-              description: `Acesso a até ${targetPlan.limits.maxActiveClients} clientes e ${targetPlan.limits.maxActiveProjects} projetos.`,
+              description: targetPlan.limits.maxActiveClients === -1
+                ? `Acesso a clientes ilimitados e ${targetPlan.limits.maxActiveProjects} projetos.`
+                : `Acesso a até ${targetPlan.limits.maxActiveClients} clientes e ${targetPlan.limits.maxActiveProjects} projetos.`,
             },
             unit_amount: targetPlan.priceBRL * 100, // in cents
             recurring: { interval: 'month' },

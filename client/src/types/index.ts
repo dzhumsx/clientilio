@@ -43,7 +43,7 @@ export interface Project {
   startDate?: string;
   targetEndDate?: string;
   budget?: number;
-  status: 'PLANNING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'ON_HOLD';
+  status: 'PLANNING' | 'IN_PROGRESS' | 'REVIEW' | 'COMPLETED' | 'ON_HOLD' | 'ARCHIVED';
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -95,9 +95,13 @@ export interface Deliverable {
   projectId: string;
   title: string;
   description?: string;
-  status: 'DRAFT' | 'READY_FOR_REVIEW' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED';
+  status: 'DRAFT' | 'READY_FOR_REVIEW' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED' | 'ARCHIVED';
   clientVisible: boolean;
   currentVersionNumber: number;
+  project?: {
+    id: string;
+    name: string;
+  };
   versions?: DeliverableVersion[];
   approvals?: Approval[];
   createdAt: string;
@@ -108,7 +112,6 @@ export interface PlanLimits {
   maxActiveClients: number;
   maxActiveProjects: number;
   maxTeamMembers: number;
-  maxStorageMb: number;
   whiteLabel: boolean;
   customDomain: boolean;
 }
@@ -135,3 +138,29 @@ export interface SubscriptionInfo {
     limits: PlanLimits;
   }>;
 }
+
+export interface TeamMember {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  role: Role;
+  joinedAt: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: Role;
+  type: 'TEAM_MEMBER' | 'CLIENT';
+  expiresAt: string;
+  createdAt: string;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  token?: string;
+}
+

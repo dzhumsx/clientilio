@@ -1,7 +1,7 @@
 {
-  "name": "nexora-workspace",
+  "name": "Marketiv.io-workspace",
   "version": "1.0.0",
-  "description": "Nexora — SaaS de Gestão de Clientes e Portal de Entregáveis para Agências",
+  "description": "Marketiv.io — SaaS de Gestão de Clientes e Portal de Entregáveis para Agências",
   "scripts": {
     "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run prisma:generate && npm --prefix server run build",
     "start": "node server/dist/index.js",
@@ -16,7 +16,12 @@
     "docker:scale": "docker compose up -d --scale server=2",
     "docker:down": "docker compose down"
   },
-  "keywords": ["saas", "agency", "client-portal", "railway"],
+  "keywords": [
+    "saas",
+    "agency",
+    "client-portal",
+    "railway"
+  ],
   "author": "",
   "license": "ISC"
 }

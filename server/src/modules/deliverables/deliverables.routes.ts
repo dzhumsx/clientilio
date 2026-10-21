@@ -59,11 +59,12 @@ router.put('/tasks/:id', ...orgMiddleware, requireTeamMember, async (req: Reques
 
 // ===================== DELIVERABLES =====================
 
-// GET /api/deliverables?projectId=xxx
+// GET /api/deliverables?projectId=xxx&status=ACTIVE|ARCHIVED
 router.get('/deliverables', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projectId = req.query.projectId as string | undefined;
-    const deliverables = await deliverableService.listByProject(req.organizationId!, projectId);
+    const status = req.query.status as string | undefined;
+    const deliverables = await deliverableService.listByProject(req.organizationId!, projectId, status);
     res.json(deliverables);
   } catch (error) {
     next(error);
@@ -97,6 +98,36 @@ router.put('/deliverables/:id', ...orgMiddleware, requireTeamMember, async (req:
     const data = updateDeliverableSchema.parse(req.body);
     const deliverable = await deliverableService.update(req.organizationId!, req.params.id as string, data);
     res.json(deliverable);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/deliverables/:id/archive
+router.post('/deliverables/:id/archive', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const deliverable = await deliverableService.archive(req.organizationId!, req.params.id as string);
+    res.json(deliverable);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/deliverables/:id/reactivate
+router.post('/deliverables/:id/reactivate', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const deliverable = await deliverableService.reactivate(req.organizationId!, req.params.id as string);
+    res.json(deliverable);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/deliverables/:id
+router.delete('/deliverables/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await deliverableService.delete(req.organizationId!, req.params.id as string);
+    res.json({ message: 'Deliverable permanently deleted' });
   } catch (error) {
     next(error);
   }

@@ -4,6 +4,7 @@ import {
   createOrganizationSchema,
   updateOrganizationSchema,
   inviteMemberSchema,
+  updateMemberRoleSchema,
 } from './organizations.validation';
 import { authenticate, resolveOrganization, requireRole, requireTeamMember } from '../../middleware/auth';
 
@@ -102,6 +103,70 @@ router.post(
         return;
       }
       const result = await orgService.acceptInvitation(token, req.user!.userId);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/organizations/invitations — List pending invitations
+router.get(
+  '/invitations',
+  authenticate,
+  resolveOrganization(),
+  requireRole('OWNER', 'ADMIN'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const invitations = await orgService.listInvitations(req.organizationId!);
+      res.json(invitations);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /api/organizations/invitations/preview/:token — Public invitation preview
+router.get('/invitations/preview/:token', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const preview = await orgService.getInvitationByToken(req.params.token as string);
+    res.json(preview);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/organizations/invitations/:id — Revoke invitation
+router.delete(
+  '/invitations/:id',
+  authenticate,
+  resolveOrganization(),
+  requireRole('OWNER', 'ADMIN'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await orgService.revokeInvitation(req.organizationId!, req.params.id as string);
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// PATCH /api/organizations/members/:membershipId/role — Update member role
+router.patch(
+  '/members/:membershipId/role',
+  authenticate,
+  resolveOrganization(),
+  requireRole('OWNER', 'ADMIN'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { role } = updateMemberRoleSchema.parse(req.body);
+      const result = await orgService.updateMemberRole(
+        req.organizationId!,
+        req.params.membershipId as string,
+        role,
+        req.memberRole!
+      );
       res.json(result);
     } catch (error) {
       next(error);

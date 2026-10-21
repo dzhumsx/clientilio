@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Lock, Mail, AlertCircle, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { Logo, LogoIcon } from '../components/Logo';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -63,31 +64,10 @@ export const LoginPage: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
             textDecoration: 'none',
-            color: 'var(--text-primary)',
           }}
         >
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '5px',
-              background: 'var(--accent-primary)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.6875rem',
-              fontWeight: 900,
-              boxShadow: 'var(--accent-glow)',
-            }}
-          >
-            ▲
-          </div>
-          <span style={{ fontWeight: 600, fontSize: '0.875rem', letterSpacing: '-0.02em' }}>
-            NEXORA
-          </span>
+          <Logo size={22} textSize="0.875rem" />
         </Link>
 
         <button
@@ -119,23 +99,8 @@ export const LoginPage: React.FC = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '8px',
-              background: 'var(--accent-primary)',
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1rem',
-              fontSize: '1.1rem',
-              fontWeight: 900,
-              boxShadow: 'var(--accent-glow)',
-            }}
-          >
-            ▲
+          <div style={{ margin: '0 auto 1rem', display: 'flex', justifyContent: 'center' }}>
+            <LogoIcon size={42} />
           </div>
           <h2
             style={{
@@ -146,7 +111,7 @@ export const LoginPage: React.FC = () => {
               margin: '0 0 0.35rem 0',
             }}
           >
-            Entrar no Nexora
+            Entrar no Marketiv.io
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>
             Acesse o portal da sua agência ou estúdio criativo

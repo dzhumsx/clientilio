@@ -59,8 +59,14 @@ export class PlanLimitError extends AppError {
   public readonly max: number;
 
   constructor(limit: string, current: number, max: number) {
+    const resourceMap: Record<string, string> = {
+      active_clients: 'clientes ativos',
+      active_projects: 'projetos ativos',
+      team_members: 'membros na equipe',
+    };
+    const resourceName = resourceMap[limit] || limit;
     super(
-      `Plan limit reached: ${limit} (${current}/${max})`,
+      `Limite do plano atingido para ${resourceName} (${current}/${max}). Faça upgrade para cadastrar novos registros.`,
       403,
       'PLAN_LIMIT_REACHED'
     );

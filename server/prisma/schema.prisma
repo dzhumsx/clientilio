@@ -17,6 +17,7 @@ model User {
   passwordHash  String
   avatarUrl     String?
   emailVerified Boolean  @default(false)
+  mfaEnabled    Boolean  @default(false)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
