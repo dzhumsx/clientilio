@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   CreditCard,
   LogOut,
-  Sparkles,
   ExternalLink,
   Building2,
   ChevronDown
@@ -34,74 +33,95 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       style={{
-        width: '260px',
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border-subtle)',
+        width: '240px',
+        backgroundColor: 'var(--bg-card)',
+        borderRight: '1px solid var(--border-hairline)',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
         position: 'sticky',
         top: 0,
         zIndex: 50,
+        userSelect: 'none',
       }}
     >
-      {/* Brand Header */}
+      {/* Brand Header with Vercel-style Triangle Glyph */}
       <div
         style={{
-          padding: '1.5rem',
+          height: '64px',
+          padding: '0 1.25rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
-          borderBottom: '1px solid var(--border-subtle)',
+          gap: '0.65rem',
+          borderBottom: '1px solid var(--border-hairline)',
         }}
       >
         <div
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--accent-gradient)',
+            width: '24px',
+            height: '24px',
+            borderRadius: '5px',
+            background: 'var(--accent-primary)',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            fontSize: '11px',
+            fontWeight: 900,
             boxShadow: 'var(--accent-glow)',
           }}
         >
-          <Sparkles size={20} color="#fff" />
+          ▲
         </div>
-        <div>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em' }}>Nexora</h2>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Portal da Agência</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+          <span style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+            Nexora
+          </span>
+          <span
+            className="eyebrow"
+            style={{
+              fontSize: '9px',
+              color: 'var(--accent-primary)',
+              background: 'var(--accent-subtle)',
+              padding: '1px 5px',
+              borderRadius: '3px',
+              border: '1px solid var(--accent-border)',
+            }}
+          >
+            AGÊNCIA
+          </span>
         </div>
       </div>
 
       {/* Organization Switcher */}
-      <div style={{ padding: '1rem 1.25rem 0.5rem' }}>
+      <div style={{ padding: '0.75rem 1rem 0.5rem' }}>
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'var(--bg-subtle)',
+            border: '1px solid var(--border-hairline)',
             borderRadius: 'var(--radius-md)',
-            padding: '0.6rem 0.85rem',
+            padding: '0.45rem 0.65rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
-            <Building2 size={16} color="var(--accent-primary)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+            <Building2 size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
             <span
               style={{
-                fontSize: '0.85rem',
-                fontWeight: 600,
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}
             >
-              {currentOrg?.name || 'Minha Agência'}
+              {currentOrg?.name || 'Agência'}
             </span>
           </div>
+
           {organizations.length > 1 && (
             <select
               value={currentOrg?.id}
@@ -110,11 +130,13 @@ export const Sidebar: React.FC = () => {
                 if (selected) setCurrentOrg(selected);
               }}
               style={{
-                opacity: 0,
                 position: 'absolute',
+                opacity: 0,
                 width: '100%',
-                left: 0,
+                height: '100%',
                 cursor: 'pointer',
+                left: 0,
+                top: 0,
               }}
             >
               {organizations.map((org) => (
@@ -124,91 +146,105 @@ export const Sidebar: React.FC = () => {
               ))}
             </select>
           )}
-          {organizations.length > 1 && <ChevronDown size={14} color="var(--text-muted)" />}
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/dashboard'}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.65rem 0.85rem',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.875rem',
-                fontWeight: isActive ? 600 : 500,
-                color: isActive ? '#ffffff' : 'var(--text-secondary)',
-                background: isActive ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                border: isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
-                transition: 'all var(--transition-fast)',
-              })}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
+      {/* Navigation Items */}
+      <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ padding: '0.4rem 0.5rem', marginBottom: '2px' }}>
+          <span className="eyebrow" style={{ fontSize: '10px' }}>
+            PLATAFORMA
+          </span>
+        </div>
 
-        <div style={{ margin: '1rem 0 0.5rem', borderTop: '1px solid var(--border-subtle)' }} />
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/dashboard'}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              padding: '0.45rem 0.65rem',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '13px',
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? 'var(--accent-primary)' : 'var(--text-secondary)',
+              backgroundColor: isActive ? 'var(--accent-subtle)' : 'transparent',
+              border: isActive ? '1px solid var(--accent-border)' : '1px solid transparent',
+              transition: 'all var(--transition-fast)',
+            })}
+          >
+            <item.icon size={16} style={{ color: 'inherit' }} />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
 
-        {/* Client Portal Link */}
-        <NavLink
-          to="/portal"
+        <div style={{ margin: '1rem 0 0.25rem', padding: '0.4rem 0.5rem', borderTop: '1px solid var(--border-hairline)' }}>
+          <span className="eyebrow" style={{ fontSize: '10px' }}>
+            ACESSO EXTERNO
+          </span>
+        </div>
+
+        <a
+          href="/portal"
+          target="_blank"
+          rel="noreferrer"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0.65rem 0.85rem',
+            padding: '0.45rem 0.65rem',
             borderRadius: 'var(--radius-md)',
-            fontSize: '0.85rem',
-            fontWeight: 500,
+            fontSize: '13px',
             color: 'var(--text-secondary)',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid var(--border-subtle)',
+            transition: 'all var(--transition-fast)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--bg-subtle)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <ExternalLink size={16} color="var(--color-info)" />
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <ExternalLink size={15} />
             <span>Portal do Cliente</span>
-          </div>
-          <span className="badge badge-info" style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>
-            Preview
           </span>
-        </NavLink>
+          <span className="eyebrow" style={{ fontSize: '9px', background: 'var(--bg-muted)', padding: '1px 5px', borderRadius: '4px' }}>
+            VISÃO
+          </span>
+        </a>
       </nav>
 
-      {/* User profile footer */}
+      {/* User Footer */}
       <div
         style={{
-          padding: '1rem',
-          borderTop: '1px solid var(--border-subtle)',
+          padding: '0.85rem 1rem',
+          borderTop: '1px solid var(--border-hairline)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'rgba(0, 0, 0, 0.2)',
+          backgroundColor: 'var(--bg-canvas)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
           <div
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: 'var(--radius-full)',
-              background: 'linear-gradient(135deg, #4f46e5, #06b6d4)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-inverted)',
+              color: 'var(--text-inverted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              color: '#ffffff',
+              fontSize: '11px',
+              fontWeight: 600,
+              flexShrink: 0,
             }}
           >
             {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -216,44 +252,34 @@ export const Sidebar: React.FC = () => {
           <div style={{ overflow: 'hidden' }}>
             <p
               style={{
-                fontSize: '0.85rem',
-                fontWeight: 600,
+                fontSize: '12px',
+                fontWeight: 500,
                 color: 'var(--text-primary)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
               }}
             >
-              {user?.name}
+              {user?.name || 'Administrador'}
             </p>
-            <p
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {user?.email}
+            <p className="eyebrow" style={{ fontSize: '9px', color: 'var(--text-tertiary)' }}>
+              {currentOrg?.role || 'OWNER'}
             </p>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
-          title="Sair"
+          className="btn btn-ghost"
           style={{
-            background: 'transparent',
-            color: 'var(--text-muted)',
             padding: '0.4rem',
-            borderRadius: 'var(--radius-sm)',
-            cursor: 'pointer',
+            borderRadius: 'var(--radius-button)',
+            color: 'var(--text-tertiary)',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-danger)')}
-          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+          title="Encerrar Sessão"
+          aria-label="Logout"
         >
-          <LogOut size={18} />
+          <LogOut size={15} />
         </button>
       </div>
     </aside>

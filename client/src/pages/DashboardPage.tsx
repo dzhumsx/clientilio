@@ -7,10 +7,9 @@ import {
   Clock,
   Plus,
   ArrowUpRight,
-  TrendingUp,
   FolderKanban,
-  Sparkles,
-  ExternalLink
+  ExternalLink,
+  ChevronRight
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { StatusBadge } from '../components/StatusBadge';
@@ -29,11 +28,10 @@ export const DashboardPage: React.FC = () => {
     if (!currentOrg) return;
     setLoading(true);
     try {
-      const [clientsRes, projectsRes, delivRes] = await Promise.all([
-        api.get('/clients?status=ACTIVE'),
-        api.get('/projects'),
-        api.get('/deliverables'),
-      ]);
+      const clientsRes = await api.get('/clients?status=ACTIVE');
+      const projectsRes = await api.get('/projects');
+      const delivRes = await api.get('/deliverables');
+
       setClients(clientsRes.data.clients || clientsRes.data.data || []);
       setProjects(projectsRes.data.projects || projectsRes.data.data || []);
       setDeliverables(delivRes.data || []);
@@ -55,190 +53,135 @@ export const DashboardPage: React.FC = () => {
   return (
     <div>
       <Navbar
-        title="Painel Executivo"
-        subtitle={`Visão geral da agência: ${currentOrg?.name || 'Carregando...'}`}
+        title="Painel da Agência"
+        subtitle={`Controle de campanhas, clientes e entregáveis: ${currentOrg?.name || 'Agência'}`}
         actions={
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link to="/portal" className="btn btn-secondary btn-sm">
-              <ExternalLink size={14} />
-              <span>Ver Portal do Cliente</span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link to="/portal" className="btn btn-ghost btn-sm">
+              <ExternalLink size={13} style={{ color: 'var(--accent-primary)' }} />
+              <span>Portal Demo</span>
             </Link>
             <Link to="/dashboard/projects" className="btn btn-primary btn-sm">
-              <Plus size={14} />
-              <span>Novo Projeto</span>
+              <Plus size={13} />
+              <span>Nova Campanha</span>
             </Link>
           </div>
         }
       />
 
-      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.75rem', maxWidth: '1280px', margin: '0 auto' }}>
         {/* Metric Cards Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
           <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Clientes Ativos</span>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(99, 102, 241, 0.15)',
-                  color: 'var(--accent-primary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Users size={18} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span className="eyebrow">CLIENTES ATIVOS</span>
+              <Users size={16} style={{ color: 'var(--accent-primary)' }} />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800 }}>{loading ? '-' : activeClientsCount}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-success)' }}>
-              <TrendingUp size={14} />
-              <span>Relacionamentos ativos</span>
+            <div style={{ fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0.25rem 0', fontFamily: 'var(--font-mono)' }}>
+              {loading ? '-' : activeClientsCount}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <span>Contas sob gestão ativa</span>
             </div>
           </div>
 
           <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Projetos em Andamento</span>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(14, 165, 233, 0.15)',
-                  color: 'var(--color-info)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Briefcase size={18} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span className="eyebrow">CAMPANHAS EM ANDAMENTO</span>
+              <Briefcase size={16} style={{ color: 'var(--accent-primary)' }} />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800 }}>{loading ? '-' : inProgressProjectsCount}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              <FolderKanban size={14} />
-              <span>{projects.length} projetos cadastrados</span>
+            <div style={{ fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.04em', color: 'var(--text-primary)', margin: '0.25rem 0', fontFamily: 'var(--font-mono)' }}>
+              {loading ? '-' : inProgressProjectsCount}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <span>{projects.length} campanhas no total</span>
             </div>
           </div>
 
           <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Entregáveis Aguardando Revisão</span>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  color: 'var(--color-warning)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Clock size={18} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span className="eyebrow">PEÇAS P/ REVISÃO</span>
+              <Clock size={16} style={{ color: 'var(--color-warning)' }} />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800 }}>{loading ? '-' : pendingApprovalsCount}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--color-warning)' }}>
-              <CheckCircle2 size={14} />
-              <span>Aguardando feedback do cliente</span>
+            <div style={{ fontSize: '2rem', fontWeight: 600, letterSpacing: '-0.04em', color: pendingApprovalsCount > 0 ? 'var(--color-warning)' : 'var(--accent-primary)', margin: '0.25rem 0', fontFamily: 'var(--font-mono)' }}>
+              {loading ? '-' : pendingApprovalsCount}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <span>Aguardando aprovação do cliente</span>
             </div>
           </div>
 
           <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Plano da Agência</span>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'rgba(168, 85, 247, 0.15)',
-                  color: '#c084fc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Sparkles size={18} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span className="eyebrow">PLANO DA AGÊNCIA</span>
+              <ArrowUpRight size={16} style={{ color: 'var(--accent-primary)' }} />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 800 }}>
-              {currentOrg?.planId ? currentOrg.planId.toUpperCase() : 'FREE'}
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.04em', color: 'var(--accent-primary)', margin: '0.35rem 0', fontFamily: 'var(--font-mono)' }}>
+              {currentOrg?.planId ? currentOrg.planId.toUpperCase() : 'AGENCY'}
             </div>
             <Link
               to="/dashboard/billing"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 600 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '12px', color: 'var(--text-secondary)' }}
             >
               <span>Gerenciar plano & limites</span>
-              <ArrowUpRight size={14} />
+              <ChevronRight size={12} />
             </Link>
           </div>
         </div>
 
         {/* Recent Projects Table Section */}
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Projetos Recentes</h2>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Status e prazos das contas ativas</p>
+              <h2 style={{ fontSize: '15px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+                Projetos Recentes
+              </h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                Status, prazos e entregáveis associados
+              </p>
             </div>
-            <Link to="/dashboard/projects" className="btn btn-outline btn-sm">
+            <Link to="/dashboard/projects" className="btn btn-ghost btn-sm">
               Ver todos os projetos
             </Link>
           </div>
 
           {projects.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
-              <FolderKanban size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.5 }} />
-              <p style={{ fontWeight: 500, fontSize: '0.95rem' }}>Nenhum projeto cadastrado ainda</p>
-              <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>Cadastre um cliente e crie o primeiro projeto da sua agência.</p>
-              <Link to="/dashboard/clients" className="btn btn-primary btn-sm" style={{ marginTop: '1rem' }}>
-                <Plus size={14} />
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-tertiary)' }}>
+              <FolderKanban size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
+              <p style={{ fontWeight: 500, fontSize: '13px', color: 'var(--text-primary)' }}>Nenhum projeto cadastrado ainda</p>
+              <p style={{ fontSize: '12px', marginTop: '0.2rem', color: 'var(--text-secondary)' }}>Cadastre um cliente e configure seu primeiro projeto.</p>
+              <Link to="/dashboard/clients" className="btn btn-primary btn-sm" style={{ marginTop: '0.85rem' }}>
+                <Plus size={13} />
                 <span>Adicionar Primeiro Cliente</span>
               </Link>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <div className="table-container" style={{ border: 'none' }}>
+              <table>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
-                    <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Nome do Projeto</th>
-                    <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Cliente</th>
-                    <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Status</th>
-                    <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Prazo</th>
-                    <th style={{ padding: '0.75rem 1rem', fontWeight: 600, textAlign: 'right' }}>Ação</th>
+                  <tr>
+                    <th>Nome do Projeto</th>
+                    <th>Cliente</th>
+                    <th>Status</th>
+                    <th>Prazo</th>
+                    <th style={{ textAlign: 'right' }}>Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {projects.slice(0, 5).map((project) => (
-                    <tr
-                      key={project.id}
-                      style={{
-                        borderBottom: '1px solid var(--border-subtle)',
-                        transition: 'background var(--transition-fast)',
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <tr key={project.id}>
+                      <td style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
                         {project.name}
                       </td>
-                      <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                        {project.client?.name || 'Cliente'}
-                      </td>
-                      <td style={{ padding: '1rem' }}>
+                      <td>{project.client?.name || 'Cliente'}</td>
+                      <td>
                         <StatusBadge status={project.status} />
                       </td>
-                      <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>
-                        {project.targetEndDate ? new Date(project.targetEndDate).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                        {project.targetEndDate ? new Date(project.targetEndDate).toLocaleDateString('pt-BR') : '—'}
                       </td>
-                      <td style={{ padding: '1rem', textAlign: 'right' }}>
-                        <Link to={`/dashboard/projects`} className="btn btn-secondary btn-sm">
+                      <td style={{ textAlign: 'right' }}>
+                        <Link to="/dashboard/projects" className="btn btn-ghost btn-sm">
                           Gerenciar
                         </Link>
                       </td>

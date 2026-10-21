@@ -1,478 +1,611 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
   ArrowRight,
-  Zap,
+  Check,
+  ShieldCheck,
   Users,
-  Eye,
-  CreditCard,
+  FolderKanban,
+  FileCheck2,
+  Sun,
+  Moon,
+  Sparkles,
+  ExternalLink,
+  ThumbsUp,
+  MessageSquare,
+  Clock,
   Layers,
-  FolderKanban
+  Palette
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const LandingPage: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
+
   const plans = [
     {
       name: 'Free',
       price: 'R$ 0',
       period: 'para sempre',
-      desc: 'Ideal para freelancers e profissionais autônomos testarem.',
-      features: ['Até 2 clientes ativos', 'Até 3 projetos simultâneos', '2 membros da equipe', '100 MB de armazenamento', 'Portal do cliente padrão'],
+      desc: 'Para freelancers e profissionais autônomos no início.',
+      features: ['2 clientes ativos', '3 projetos simultâneos', '2 membros na equipe', '100 MB de armazenamento', 'Portal do cliente padrão'],
       highlight: false,
     },
     {
       name: 'Pro',
       price: 'R$ 59',
       period: '/mês',
-      desc: 'Para estúdios e agências em crescimento.',
-      features: ['Até 10 clientes ativos', 'Até 25 projetos simultâneos', '5 membros na equipe', '1 GB de armazenamento', 'Notificações e histórico'],
-      highlight: true,
-      tag: 'Mais Popular',
+      desc: 'Para criativos experientes e estúdios em crescimento.',
+      features: ['10 clientes ativos', '25 projetos simultâneos', '5 membros na equipe', '1 GB de armazenamento', 'Histórico de versões de arquivos', 'Notificações automáticas por email'],
+      highlight: false,
     },
     {
       name: 'Business',
       price: 'R$ 119',
       period: '/mês',
-      desc: 'Para agências consolidadas que exigem white-label.',
-      features: ['Até 30 clientes ativos', 'Até 100 projetos', '15 membros na equipe', '5 GB de armazenamento', 'White-label (sem marca Nexora)', 'Domínio personalizado'],
+      desc: 'Para agências de marketing que exigem portal white-label.',
+      features: ['30 clientes ativos', '100 projetos simultâneos', '15 membros na equipe', '5 GB de armazenamento', 'White-label com a sua marca', 'Aprovações ilimitadas'],
       highlight: false,
     },
     {
       name: 'Agency',
       price: 'R$ 239',
       period: '/mês',
-      desc: 'Escala total com capacidade máxima e automações.',
-      features: ['Até 100 clientes ativos', 'Até 500 projetos', '50 membros de equipe', '20 GB de armazenamento', 'White-label + Domínio próprio', 'Suporte prioritário 24/7'],
-      highlight: false,
+      desc: 'Para agências full-service com alto volume de clientes e campanhas.',
+      features: ['100 clientes ativos', '500 projetos simultâneos', '50 membros de equipe', '20 GB de armazenamento', 'White-label completo', 'Relatórios executivos', 'Suporte com SLA prioritário'],
+      highlight: true,
+      tag: 'MAIS POPULAR',
     },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
-      {/* Top Header */}
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-canvas)', color: 'var(--text-primary)' }}>
+      {/* Top Navigation Bar */}
       <header
         style={{
-          borderBottom: '1px solid var(--border-subtle)',
-          padding: '1.25rem 2rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: '1280px',
-          margin: '0 auto',
+          height: '64px',
+          borderBottom: '1px solid var(--border-hairline)',
+          backgroundColor: 'var(--bg-canvas)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 'var(--accent-glow)',
-            }}
-          >
-            <Sparkles size={22} color="#fff" />
-          </div>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Nexora</span>
-        </div>
-
-        <nav style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <a href="#features" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-            Recursos
-          </a>
-          <a href="#pricing" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-            Planos
-          </a>
-          <Link to="/portal" style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 500 }}>
-            Ver Demonstração do Portal
-          </Link>
-          <Link to="/login" className="btn btn-secondary btn-sm">
-            Entrar
-          </Link>
-          <Link to="/register" className="btn btn-primary btn-sm">
-            Criar Conta Grátis
-          </Link>
-        </nav>
-      </header>
-
-      {/* Hero Section */}
-      <section
-        style={{
-          padding: '6rem 1.5rem 4rem',
-          maxWidth: '1100px',
-          margin: '0 auto',
-          textAlign: 'center',
-          position: 'relative',
-        }}
-      >
-        {/* Glow ambient circle */}
         <div
           style={{
-            position: 'absolute',
-            top: '10%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '500px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(9, 13, 22, 0) 70%)',
-            pointerEvents: 'none',
-            zIndex: 0,
+            maxWidth: '1280px',
+            margin: '0 auto',
+            height: '100%',
+            padding: '0 1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
-        />
-
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.35rem 0.95rem',
-              borderRadius: 'var(--radius-full)',
-              background: 'rgba(99, 102, 241, 0.12)',
-              border: '1px solid rgba(99, 102, 241, 0.3)',
-              color: 'var(--text-link)',
-              fontSize: '0.8125rem',
-              fontWeight: 600,
-              marginBottom: '1.75rem',
-            }}
-          >
-            <Zap size={14} />
-            <span>Portal de Clientes & Gestão de Projetos para Agências</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: '3.6rem',
-              lineHeight: 1.15,
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              marginBottom: '1.5rem',
-              maxWidth: '920px',
-              margin: '0 auto 1.5rem',
-            }}
-          >
-            A experiência de aprovação e acompanhamento que seus{' '}
-            <span
+        >
+          {/* Brand Mark with Emerald Green Accent */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div
               style={{
-                background: 'linear-gradient(135deg, #818cf8 0%, #c084fc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                width: '26px',
+                height: '26px',
+                borderRadius: '6px',
+                background: 'var(--accent-primary)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: 900,
+                boxShadow: 'var(--accent-glow)',
               }}
             >
-              clientes merecem.
+              ▲
+            </div>
+            <span style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
+              Nexora
             </span>
-          </h1>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                color: 'var(--accent-primary)',
+                background: 'var(--accent-subtle)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                border: '1px solid var(--accent-border)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              AGENCY
+            </span>
+          </Link>
 
-          <p
-            style={{
-              fontSize: '1.25rem',
-              color: 'var(--text-secondary)',
-              maxWidth: '680px',
-              margin: '0 auto 2.5rem',
-              lineHeight: 1.6,
-            }}
-          >
-            Diga adeus a aprovações perdidas no WhatsApp e feedback desorganizado. O Nexora centraliza entregáveis,
-            comentários com versionamento e faturamento recorrente.
-          </p>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <Link to="/register" className="btn btn-primary btn-lg">
-              <span>Experimentar Grátis Agora</span>
-              <ArrowRight size={18} />
+          {/* Nav Links */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '1.75rem' }}>
+            <a href="#features" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              Recursos
+            </a>
+            <a href="#workflow" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              Como Funciona
+            </a>
+            <a href="#pricing" style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              Planos
+            </a>
+            <Link to="/portal" style={{ fontSize: '14px', color: 'var(--accent-primary)', fontWeight: 500 }}>
+              Portal Demo
             </Link>
-            <Link to="/portal" className="btn btn-secondary btn-lg">
-              <Eye size={18} />
-              <span>Ver Portal do Cliente</span>
+          </nav>
+
+          {/* Action Cluster */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              onClick={toggleTheme}
+              className="btn btn-ghost"
+              style={{
+                padding: '0.45rem',
+                borderRadius: 'var(--radius-button)',
+                color: 'var(--text-secondary)',
+              }}
+              aria-label="Alternar tema"
+              title={theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+
+            <Link to="/login" className="btn btn-ghost btn-sm">
+              Entrar
+            </Link>
+            <Link to="/register" className="btn btn-primary btn-sm">
+              <span>Criar Conta</span>
+              <ArrowRight size={13} />
             </Link>
           </div>
+        </div>
+      </header>
 
-          {/* Social Proof Stats */}
+      {/* Hero Section — Agency Marketing & Freelance Focus */}
+      <section style={{ maxWidth: '1280px', margin: '0 auto', padding: '5rem 1.5rem 4rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '3rem', alignItems: 'center' }}>
+          <div>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <span className="eyebrow" style={{ color: 'var(--accent-primary)', borderColor: 'var(--accent-border)', background: 'var(--accent-subtle)' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block' }} />
+                PLATAFORMA PARA AGÊNCIAS DE MARKETING & CRIATIVOS
+              </span>
+            </div>
+
+            <h1
+              style={{
+                fontSize: 'clamp(2.4rem, 4.8vw, 3.75rem)',
+                fontWeight: 600,
+                lineHeight: 1.08,
+                letterSpacing: '-0.045em',
+                color: 'var(--text-primary)',
+                marginBottom: '1.35rem',
+              }}
+            >
+              Suas campanhas, clientes e aprovações organizadas em um só lugar.
+            </h1>
+
+            <p
+              style={{
+                fontSize: '1.05rem',
+                lineHeight: 1.6,
+                color: 'var(--text-secondary)',
+                maxWidth: '540px',
+                marginBottom: '2rem',
+              }}
+            >
+              Diga adeus a aprovações perdidas no WhatsApp e planilhas confusas. Encante seus clientes com um portal profissional para aprovar criativos, vídeos, copys e relatórios em tempo real.
+            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <Link to="/register" className="btn btn-primary btn-lg">
+                <span>Começar Gratuitamente</span>
+                <ArrowRight size={16} />
+              </Link>
+              <Link to="/portal" className="btn btn-ghost btn-lg">
+                <span>Ver Portal do Cliente</span>
+                <ExternalLink size={14} />
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '2.5rem', fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Check size={14} style={{ color: 'var(--accent-primary)' }} />
+                <span>SEM CARTÃO PARA TESTAR</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Check size={14} style={{ color: 'var(--accent-primary)' }} />
+                <span>WHITE-LABEL PERSONALIZÁVEL</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Marketing Campaign & Deliverables Showcase Card */}
           <div
+            className="card"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '2rem',
-              maxWidth: '750px',
-              margin: '4.5rem auto 0',
               padding: '1.5rem',
-              background: 'rgba(255, 255, 255, 0.02)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xl)',
+              boxShadow: 'var(--shadow-modal)',
+              border: '1px solid var(--accent-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+              background: 'var(--bg-surface)',
             }}
           >
-            <div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff' }}>98%</div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Agilidade nas Aprovações</p>
+            {/* Window Top Controls */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '0.75rem',
+                borderBottom: '1px solid var(--border-hairline)',
+                fontSize: '11px',
+                color: 'var(--text-tertiary)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
+              </div>
+              <span style={{ color: 'var(--text-secondary)' }}>PORTAL DO CLIENTE • NEXORA</span>
             </div>
-            <div style={{ borderLeft: '1px solid var(--border-subtle)', borderRight: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-success)' }}>100%</div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Isolamento Multi-tenant</p>
-            </div>
+
+            {/* Campaign Header */}
             <div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-link)' }}>Zero</div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Atrasos por Ruído</p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  CLIENTE: RED BULL BRASIL
+                </span>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    background: 'var(--accent-subtle)',
+                    color: 'var(--accent-primary)',
+                    border: '1px solid var(--accent-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent-primary)' }} />
+                  AGUARDANDO REVISÃO
+                </span>
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+                Campanha Q4 — Tráfego Pago & Reels Criativos
+              </h3>
+            </div>
+
+            {/* Deliverables Pipeline Showcase */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.625rem 0.85rem',
+                  borderRadius: '6px',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-hairline)',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Palette size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span style={{ fontWeight: 500 }}>Carrossel Meta Ads (1080x1350)</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>v2.2</span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                  ✓ APROVADO
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.625rem 0.85rem',
+                  borderRadius: '6px',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--accent-border)',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Layers size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span style={{ fontWeight: 500 }}>Vídeos Reels & TikTok (Motion 9:16)</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>v3.0</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.35rem' }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ padding: '0.2rem 0.6rem', fontSize: '11px', height: '24px' }}
+                  >
+                    <ThumbsUp size={11} />
+                    <span>Aprovar</span>
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ padding: '0.2rem 0.6rem', fontSize: '11px', height: '24px' }}
+                  >
+                    <MessageSquare size={11} />
+                    <span>Ajuste</span>
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.625rem 0.85rem',
+                  borderRadius: '6px',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-hairline)',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FileCheck2 size={14} style={{ color: 'var(--accent-primary)' }} />
+                  <span style={{ fontWeight: 500 }}>Copywriting & Roteiro dos Criativos</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-tertiary)' }}>v1.0</span>
+                </div>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                  ✓ APROVADO
+                </span>
+              </div>
+            </div>
+
+            {/* Client Quote & Status */}
+            <div
+              style={{
+                padding: '0.75rem',
+                borderRadius: '6px',
+                background: 'var(--accent-subtle)',
+                border: '1px solid var(--accent-border)',
+                fontSize: '11px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+              }}
+            >
+              <strong style={{ color: 'var(--accent-primary)', display: 'block', marginBottom: '2px', fontFamily: 'var(--font-mono)' }}>
+                FEEDBACK DO CLIENTE:
+              </strong>
+              "Adoramos a versão v2.2 das artes! Podem subir no Gerenciador de Anúncios assim que o vídeo estiver aprovado."
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section id="features" style={{ padding: '5rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-          <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-            Tudo o que sua agência precisa para escalar
+      {/* Social Proof Strip */}
+      <section
+        style={{
+          borderTop: '1px solid var(--border-hairline)',
+          borderBottom: '1px solid var(--border-hairline)',
+          backgroundColor: 'var(--bg-subtle)',
+          padding: '2rem 1.5rem',
+        }}
+      >
+        <div style={{ maxWidth: '1280px', margin: '0 auto', textAlign: 'center' }}>
+          <p className="eyebrow" style={{ marginBottom: '1.25rem', textAlign: 'center', display: 'block', color: 'var(--text-tertiary)' }}>
+            CONFIADO POR MAIS DE 500 AGÊNCIAS E PROFISSIONAIS CRIATIVOS
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '3rem',
+              flexWrap: 'wrap',
+              opacity: 0.85,
+              fontSize: '14px',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <span>STUDIO LUMINA</span>
+            <span>VÉRTICE PERFORMANCE</span>
+            <span>ALPHA BRANDING</span>
+            <span>CRIATIVA CO.</span>
+            <span>NORTH MEDIA</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Feature Cards Grid */}
+      <section id="features" style={{ maxWidth: '1280px', margin: '0 auto', padding: '5.5rem 1.5rem' }}>
+        <div style={{ marginBottom: '3rem', maxWidth: '640px' }}>
+          <span className="eyebrow" style={{ marginBottom: '0.75rem', display: 'inline-block', color: 'var(--accent-primary)', borderColor: 'var(--accent-border)' }}>
+            RECURSOS CRIADOS PARA AGÊNCIAS
+          </span>
+          <h2 style={{ fontSize: '2.1rem', fontWeight: 600, letterSpacing: '-0.035em', lineHeight: 1.15, marginBottom: '0.85rem' }}>
+            Tudo o que sua agência precisa para reter clientes e entregar no prazo.
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '580px', margin: '0 auto' }}>
-            Projetado de ponta a ponta com foco na experiência do cliente final e na produtividade da sua equipe.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.55 }}>
+            Acabe com a desorganização de arquivos e garanta aprovações rápidas com uma experiência que valoriza o trabalho criativo da sua equipe.
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.75rem' }}>
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: 'var(--accent-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <Eye size={24} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '6px', background: 'var(--accent-subtle)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+                <Users size={16} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Gestão de Contratos & Retainers</h3>
             </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Portal do Cliente Dedicado</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Uma interface simplificada e limpa onde seu cliente visualiza apenas os entregáveis prontos para revisão,
-              com botão de aprovação rápida ou solicitação de ajustes estruturados.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.55, margin: 0 }}>
+              Controle de contas ativas, contatos decisores, orçamentos mensais acordados e histórico confidencial de cada cliente da sua agência.
             </p>
           </div>
 
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: 'var(--color-success)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <CheckCircle2 size={24} />
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '6px', background: 'var(--accent-subtle)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+                <FolderKanban size={16} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Projetos & Campanhas Criativas</h3>
             </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Fluxo Formal de Aprovação</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Histórico rastreável de cada versão (v1, v2, v3), quem aprovou, data, hora e comentários pontuais.
-              Elimina o "eu não aprovei isso" da rotina da sua agência.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.55, margin: 0 }}>
+              Acompanhamento de prazos, escopos de Social Media, Branding, Tráfego Pago e Produção de Conteúdo em um painel claro e objetivo.
             </p>
           </div>
 
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(14, 165, 233, 0.15)',
-                color: 'var(--color-info)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <FolderKanban size={24} />
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '6px', background: 'var(--accent-subtle)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+                <FileCheck2 size={16} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Aprovações & Versionamento</h3>
             </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Gestão de Projetos & Tarefas</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Acompanhe status em tempo real, prazos de entrega, responsáveis internos e prioridades operacionais sem
-              complexidade excessiva.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.55, margin: 0 }}>
+              Envio de layouts do Figma, vídeos do Drive e copys com versionamento formal (v1, v2, v3), registro de aprovação e solicitação de ajustes.
             </p>
           </div>
 
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(168, 85, 247, 0.15)',
-                color: '#c084fc',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <CreditCard size={24} />
+          <div className="card" style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.85rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '6px', background: 'var(--accent-subtle)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+                <ShieldCheck size={16} />
+              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>Portal White-Label Exclusivo</h3>
             </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Gateway Stripe Integrado</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Assinaturas mensais em Reais (BRL), controle de limites por plano (Free, Pro, Business, Agency), checkout
-              seguro e simulação integrada para desenvolvimento.
-            </p>
-          </div>
-
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(245, 158, 11, 0.15)',
-                color: 'var(--color-warning)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <ShieldCheck size={24} />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Segurança & Isolamento de Dados</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Criptografia com bcrypt (salt rounds: 12), tokens JWT com rotação contínua e garantia rigorosa de que um
-              cliente jamais veja arquivos de outros clientes.
-            </p>
-          </div>
-
-          <div className="card card-interactive">
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(244, 63, 94, 0.15)',
-                color: 'var(--color-danger)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <Layers size={24} />
-            </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>White-Label Completo</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6 }}>
-              Nos planos avançados, customize a paleta de cores, logotipo da sua agência e oculte a menção à Nexora para
-              entregar uma experiência 100% personalizada.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.55, margin: 0 }}>
+              Ofereça aos clientes um portal seguro com a identidade visual da sua agência, transmitindo autoridade e posicionamento premium.
             </p>
           </div>
         </div>
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" style={{ padding: '5rem 1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-          <h2 style={{ fontSize: '2.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Planos transparentes e escaláveis</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem' }}>
-            Comece no plano gratuito e faça upgrade conforme sua agência conquista novos clientes.
-          </p>
-        </div>
+      <section id="pricing" style={{ borderTop: '1px solid var(--border-hairline)', backgroundColor: 'var(--bg-subtle)', padding: '5.5rem 1.5rem' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto 3.5rem' }}>
+            <span className="eyebrow" style={{ marginBottom: '0.75rem', display: 'inline-block', color: 'var(--accent-primary)', borderColor: 'var(--accent-border)' }}>
+              PLANOS TRANSPARENTES
+            </span>
+            <h2 style={{ fontSize: '2.1rem', fontWeight: 600, letterSpacing: '-0.035em', lineHeight: 1.15, marginBottom: '0.85rem' }}>
+              Planos que crescem junto com a sua agência.
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>
+              Sem contratos de fidelidade. Escolha a quantidade de clientes que gerencia hoje e evolua a qualquer momento.
+            </p>
+          </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className="card"
-              style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                border: p.highlight ? '2px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
-                background: p.highlight ? 'linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, var(--bg-card) 100%)' : 'var(--bg-card)',
-              }}
-            >
-              {p.tag && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-12px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'var(--accent-gradient)',
-                    color: '#fff',
-                    padding: '0.2rem 0.75rem',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  {p.tag}
-                </div>
-              )}
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700 }}>{p.name}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>{p.desc}</p>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#ffffff' }}>{p.price}</span>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{p.period}</span>
-              </div>
-
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, marginBottom: '2rem' }}>
-                {p.features.map((feat) => (
-                  <li key={feat} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-                    <CheckCircle2 size={16} color="var(--color-success)" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                to="/register"
-                className={`btn ${p.highlight ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ width: '100%' }}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+            {plans.map((p) => (
+              <div
+                key={p.name}
+                className="card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
+                  padding: '1.5rem',
+                  borderColor: p.highlight ? 'var(--accent-primary)' : 'var(--border-hairline)',
+                  boxShadow: p.highlight ? 'var(--accent-glow)' : 'none',
+                  backgroundColor: 'var(--bg-surface)',
+                }}
               >
-                Começar no {p.name}
-              </Link>
-            </div>
-          ))}
+                {p.highlight && (
+                  <div style={{ position: 'absolute', top: '-11px', left: '16px' }}>
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        fontFamily: 'var(--font-mono)',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        background: 'var(--accent-primary)',
+                        color: '#ffffff',
+                      }}
+                    >
+                      {p.tag}
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 600, marginBottom: '0.25rem' }}>{p.name}</h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', minHeight: '38px', margin: 0 }}>{p.desc}</p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', marginBottom: '1.5rem' }}>
+                  <span style={{ fontSize: '2.1rem', fontWeight: 600, letterSpacing: '-0.04em', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                    {p.price}
+                  </span>
+                  <span style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>{p.period}</span>
+                </div>
+
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.75rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1 }}>
+                  {p.features.map((f, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <Check size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/register"
+                  className={p.highlight ? 'btn btn-primary' : 'btn btn-outline'}
+                  style={{ width: '100%', textAlign: 'center', justifyContent: 'center' }}
+                >
+                  Começar no {p.name}
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer
-        style={{
-          borderTop: '1px solid var(--border-subtle)',
-          padding: '2.5rem 2rem',
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          color: 'var(--text-muted)',
-          fontSize: '0.875rem',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Sparkles size={16} color="var(--accent-primary)" />
-          <span>© 2026 Nexora Software. Todos os direitos reservados. Pronto para Railway.</span>
-        </div>
-        <div style={{ display: 'flex', gap: '1.5rem' }}>
-          <Link to="/login">Entrar</Link>
-          <Link to="/register">Registrar</Link>
-          <Link to="/portal">Portal do Cliente</Link>
+      <footer style={{ borderTop: '1px solid var(--border-hairline)', padding: '2.5rem 1.5rem', backgroundColor: 'var(--bg-canvas)' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div
+              style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '4px',
+                background: 'var(--accent-primary)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '9px',
+                fontWeight: 900,
+              }}
+            >
+              ▲
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Nexora — Gestão para Agências & Criativos
+            </span>
+          </div>
+
+          <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'var(--font-mono)' }}>
+            © {new Date().getFullYear()} Nexora. Feito para estúdios e agências de alta performance.
+          </p>
         </div>
       </footer>
     </div>
   );
 };
+

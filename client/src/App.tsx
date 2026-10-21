@@ -15,13 +15,28 @@ import { ClientPortalPage } from './pages/ClientPortalPage';
 
 import { Toaster } from 'react-hot-toast';
 import { CookieConsent } from './components/CookieConsent';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Toaster position="top-right" toastOptions={{ style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
-      <CookieConsent />
-      <BrowserRouter>
+    <ThemeProvider>
+      <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: '6px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              boxShadow: 'var(--shadow-dropdown)',
+            },
+          }}
+        />
+        <CookieConsent />
+        <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -42,7 +57,8 @@ export const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

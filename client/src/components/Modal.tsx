@@ -26,33 +26,34 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid var(--border-subtle)',
+            padding: '1rem 1.25rem',
+            borderBottom: '1px solid var(--border-hairline)',
           }}
         >
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{title}</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
+            {title}
+          </h3>
           <button
             onClick={onClose}
+            className="btn btn-ghost"
             style={{
-              background: 'transparent',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-              display: 'flex',
-              padding: '0.25rem',
-              borderRadius: 'var(--radius-sm)',
+              padding: '0.35rem',
+              borderRadius: 'var(--radius-button)',
+              color: 'var(--text-tertiary)',
             }}
+            aria-label="Fechar"
           >
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
-        <div style={{ padding: '1.5rem' }}>{children}</div>
+        <div style={{ padding: '1.25rem' }}>{children}</div>
       </div>
     </div>
   );

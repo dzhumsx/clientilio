@@ -5,36 +5,55 @@ interface StatusBadgeProps {
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  switch (status) {
-    case 'ACTIVE':
-      return <span className="badge badge-success">Ativo</span>;
-    case 'ARCHIVED':
-      return <span className="badge badge-neutral">Arquivado</span>;
-    case 'PLANNING':
-      return <span className="badge badge-info">Planejamento</span>;
-    case 'IN_PROGRESS':
-      return <span className="badge badge-warning">Em Andamento</span>;
-    case 'REVIEW':
-      return <span className="badge badge-warning">Em Revisão</span>;
-    case 'COMPLETED':
-      return <span className="badge badge-success">Concluído</span>;
-    case 'ON_HOLD':
-      return <span className="badge badge-neutral">Pausado</span>;
-    case 'DRAFT':
-      return <span className="badge badge-neutral">Rascunho</span>;
-    case 'READY_FOR_REVIEW':
-      return <span className="badge badge-warning">Aguardando Avaliação</span>;
-    case 'IN_REVIEW':
-      return <span className="badge badge-info">Em Análise</span>;
-    case 'CHANGES_REQUESTED':
-      return <span className="badge badge-danger">Ajustes Solicitados</span>;
-    case 'APPROVED':
-      return <span className="badge badge-success">Aprovado</span>;
-    case 'TODO':
-      return <span className="badge badge-neutral">A Fazer</span>;
-    case 'DONE':
-      return <span className="badge badge-success">Feito</span>;
-    default:
-      return <span className="badge badge-neutral">{status}</span>;
-  }
+  const getStatusConfig = () => {
+    switch (status) {
+      case 'ACTIVE':
+        return { label: 'Ativo', variant: 'badge-success', dot: 'var(--color-success)' };
+      case 'ARCHIVED':
+        return { label: 'Arquivado', variant: 'badge-neutral', dot: 'var(--text-muted)' };
+      case 'PLANNING':
+        return { label: 'Planejamento', variant: 'badge-info', dot: 'var(--color-info)' };
+      case 'IN_PROGRESS':
+        return { label: 'Em Andamento', variant: 'badge-warning', dot: 'var(--color-warning)' };
+      case 'REVIEW':
+        return { label: 'Em Revisão', variant: 'badge-warning', dot: 'var(--color-warning)' };
+      case 'COMPLETED':
+        return { label: 'Concluído', variant: 'badge-success', dot: 'var(--color-success)' };
+      case 'ON_HOLD':
+        return { label: 'Pausado', variant: 'badge-neutral', dot: 'var(--text-muted)' };
+      case 'DRAFT':
+        return { label: 'Rascunho', variant: 'badge-neutral', dot: 'var(--text-muted)' };
+      case 'READY_FOR_REVIEW':
+        return { label: 'Aguardando Avaliação', variant: 'badge-warning', dot: 'var(--color-warning)' };
+      case 'IN_REVIEW':
+        return { label: 'Em Análise', variant: 'badge-info', dot: 'var(--color-info)' };
+      case 'CHANGES_REQUESTED':
+        return { label: 'Ajustes Solicitados', variant: 'badge-danger', dot: 'var(--color-danger)' };
+      case 'APPROVED':
+        return { label: 'Aprovado', variant: 'badge-success', dot: 'var(--color-success)' };
+      case 'TODO':
+        return { label: 'A Fazer', variant: 'badge-neutral', dot: 'var(--text-muted)' };
+      case 'DONE':
+        return { label: 'Feito', variant: 'badge-success', dot: 'var(--color-success)' };
+      default:
+        return { label: status, variant: 'badge-neutral', dot: 'var(--text-muted)' };
+    }
+  };
+
+  const { label, variant, dot } = getStatusConfig();
+
+  return (
+    <span className={`badge ${variant}`}>
+      <span
+        style={{
+          width: '5px',
+          height: '5px',
+          borderRadius: '50%',
+          backgroundColor: dot,
+          display: 'inline-block',
+        }}
+      />
+      <span>{label}</span>
+    </span>
+  );
 };

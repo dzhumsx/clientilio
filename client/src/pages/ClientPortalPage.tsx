@@ -2,25 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CheckCircle2,
-  AlertCircle,
   ExternalLink,
   ThumbsUp,
   MessageSquare,
-  Sparkles,
   ArrowLeft,
   Clock,
-  ShieldCheck,
-  FileCheck
+  FileCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Deliverable, Project } from '../types';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 
 export const ClientPortalPage: React.FC = () => {
   const { currentOrg, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [projects, setProjects] = useState<Project[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,11 +37,11 @@ export const ClientPortalPage: React.FC = () => {
   const fetchPortalData = async () => {
     setLoading(true);
     try {
-      const [projRes, delivRes] = await Promise.all([
-        api.get('/projects'),
-        api.get('/deliverables'),
-      ]);
+      // Sequential queries to avoid PGlite lock collision
+      const projRes = await api.get('/projects');
       setProjects(projRes.data.projects || projRes.data.data || []);
+
+      const delivRes = await api.get('/deliverables');
       setDeliverables(delivRes.data || []);
     } catch (err) {
       console.error('Failed to load portal data:', err);
@@ -63,7 +64,7 @@ export const ClientPortalPage: React.FC = () => {
         : null;
 
     if (!latestVersion) {
-      alert('Não há versão cadastrada para este entregável.');
+      toast.error('Não há versão cadastrada para este entregável.');
       return;
     }
 
@@ -87,8 +88,8 @@ export const ClientPortalPage: React.FC = () => {
       setComment('');
       const msg =
         decision === 'APPROVED'
-          ? '🎉 Entregável aprovado com sucesso! A equipe da agência foi notificada.'
-          : '📝 Ajustes enviados com sucesso! A equipe da agência iniciará as alterações.';
+          ? 'Entregável aprovado com sucesso. A agência foi notificada.'
+          : 'Solicitação de ajustes enviada com sucesso.';
       setSuccessMessage(msg);
       toast.success(msg);
       fetchPortalData();
@@ -106,14 +107,13 @@ export const ClientPortalPage: React.FC = () => {
   const approvedItems = deliverables.filter((d) => d.status === 'APPROVED');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-canvas)', color: 'var(--text-primary)' }}>
       {/* Client Portal Header */}
       <header
         style={{
-          borderBottom: '1px solid var(--border-subtle)',
-          background: 'rgba(9, 13, 22, 0.9)',
-          backdropFilter: 'blur(10px)',
-          padding: '1.25rem 2rem',
+          borderBottom: '1px solid var(--border-hairline)',
+          background: 'var(--bg-surface)',
+          padding: '0.875rem 2rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -122,75 +122,151 @@ export const ClientPortalPage: React.FC = () => {
           zIndex: 50,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #0ea5e9, #6366f1)',
+              width: '26px',
+              height: '26px',
+              borderRadius: '4px',
+              background: 'var(--text-primary)',
+              color: 'var(--bg-canvas)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 900,
             }}
           >
-            <ShieldCheck size={20} color="#fff" />
+            ▲
           </div>
           <div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Portal do Cliente</h1>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {currentOrg?.name || 'Agência Digital'}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, letterSpacing: '-0.02em' }}>
+                Portal do Cliente
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.625rem',
+                  padding: '1px 5px',
+                  borderRadius: '3px',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-hairline)',
+                  color: 'var(--text-secondary)',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {currentOrg?.name || 'AGÊNCIA'}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <button
+            onClick={toggleTheme}
+            aria-label="Alternar tema"
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '6px',
+              border: '1px solid var(--border-hairline)',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+
           <Link to="/dashboard" className="btn btn-secondary btn-sm">
-            <ArrowLeft size={14} />
-            <span>Voltar ao Painel da Agência</span>
+            <ArrowLeft size={13} />
+            <span>Voltar ao Painel</span>
           </Link>
         </div>
       </header>
 
       {/* Main Container */}
-      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: '2.5rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {/* Welcome Greeting Card */}
         <div
           className="card"
           style={{
-            background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%)',
-            border: '1px solid rgba(14, 165, 233, 0.25)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '1rem',
+            gap: '1.5rem',
+            padding: '1.5rem',
           }}
         >
           <div>
-            <span className="badge badge-info" style={{ marginBottom: '0.4rem' }}>
-              Área Exclusiva de Aprovações
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-tertiary)',
+                display: 'block',
+                marginBottom: '0.25rem',
+              }}
+            >
+              PAINEL DE APROVAÇÕES
             </span>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.2rem' }}>
-              Olá{user?.name ? `, ${user.name}` : ''}!
+            <h2
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 600,
+                letterSpacing: '-0.035em',
+                color: 'var(--text-primary)',
+                margin: '0 0 0.35rem 0',
+              }}
+            >
+              Olá{user?.name ? `, ${user.name}` : ''}
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '0.25rem' }}>
-              Aqui você acompanha as entregas da sua agência em tempo real e valida cada etapa do projeto.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0, maxWidth: '480px' }}>
+              Acompanhe as entregas da sua agência em tempo real e aprove materiais para produção.
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-warning)' }}>
+              <div
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '-0.04em',
+                  color: 'var(--text-primary)',
+                }}
+              >
                 {pendingItems.length}
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Aguardando Avaliação</span>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                AGUARDANDO AVALIAÇÃO
+              </span>
             </div>
-            <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '1.5rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-success)' }}>
+            <div style={{ borderLeft: '1px solid var(--border-hairline)', paddingLeft: '1.5rem', textAlign: 'center' }}>
+              <div
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '-0.04em',
+                  color: 'var(--accent-primary)',
+                }}
+              >
                 {approvedItems.length}
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Entregáveis Aprovados</span>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                ENTREGAS APROVADAS
+              </span>
             </div>
           </div>
         </div>
@@ -198,42 +274,71 @@ export const ClientPortalPage: React.FC = () => {
         {successMessage && (
           <div
             style={{
-              background: 'var(--color-success-bg)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1rem',
-              color: 'var(--color-success)',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: '6px',
+              padding: '0.875rem 1rem',
+              color: 'var(--accent-primary)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.6rem',
-              fontSize: '0.9rem',
-              fontWeight: 500,
+              gap: '0.625rem',
+              fontSize: '0.8125rem',
+              fontFamily: 'var(--font-mono)',
             }}
           >
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={16} />
             <span>{successMessage}</span>
           </div>
         )}
 
         {/* Pending Deliverables Section */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-            <Clock size={20} color="var(--color-warning)" />
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>Entregas para sua Revisão</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <Clock size={16} style={{ color: 'var(--text-tertiary)' }} />
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
+              Entregas para sua Revisão
+            </h2>
           </div>
 
           {loading ? (
-            <p style={{ color: 'var(--text-muted)' }}>Carregando entregáveis...</p>
+            <p style={{ color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', fontSize: '0.8125rem' }}>
+              CARREGANDO ENTREGÁVEIS...
+            </p>
           ) : pendingItems.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
-              <FileCheck size={38} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Nenhum item pendente de aprovação</p>
-              <p style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                Você está em dia! Assim que a agência disponibilizar uma nova versão, ela aparecerá aqui.
+            <div
+              className="card"
+              style={{
+                textAlign: 'center',
+                padding: '3rem 1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-hairline)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '0.75rem',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                <FileCheck size={18} />
+              </div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', margin: '0 0 0.25rem 0' }}>
+                Nenhum item pendente de aprovação
+              </p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '360px' }}>
+                Você está em dia. Assim que a agência disponibilizar uma nova versão, ela será listada aqui.
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {pendingItems.map((item) => {
                 const latestVersion = item.versions && item.versions.length > 0 ? item.versions[item.versions.length - 1] : null;
 
@@ -242,26 +347,41 @@ export const ClientPortalPage: React.FC = () => {
                     key={item.id}
                     className="card"
                     style={{
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '1rem',
+                      padding: '1.25rem',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{item.title}</h3>
-                          <span className="badge badge-warning">v{item.currentVersionNumber}</span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+                            {item.title}
+                          </h3>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--border-hairline)',
+                              background: 'var(--bg-subtle)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            v{item.currentVersionNumber}
+                          </span>
                         </div>
                         {item.description && (
-                          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.4rem' }}>
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
                             {item.description}
                           </p>
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {latestVersion?.externalUrl && (
                           <a
                             href={latestVersion.externalUrl}
@@ -269,8 +389,8 @@ export const ClientPortalPage: React.FC = () => {
                             rel="noreferrer"
                             className="btn btn-outline btn-sm"
                           >
-                            <ExternalLink size={14} />
-                            <span>Abrir Material para Revisão</span>
+                            <ExternalLink size={13} />
+                            <span>Abrir Material</span>
                           </a>
                         )}
 
@@ -282,7 +402,7 @@ export const ClientPortalPage: React.FC = () => {
                           }}
                           className="btn btn-secondary btn-sm"
                         >
-                          <MessageSquare size={14} />
+                          <MessageSquare size={13} />
                           <span>Solicitar Ajustes</span>
                         </button>
 
@@ -294,17 +414,27 @@ export const ClientPortalPage: React.FC = () => {
                           }}
                           className="btn btn-primary btn-sm"
                         >
-                          <ThumbsUp size={14} />
-                          <span>Aprovar Entregável</span>
+                          <ThumbsUp size={13} />
+                          <span>Aprovar</span>
                         </button>
                       </div>
                     </div>
 
                     {latestVersion && (
-                      <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-                        <strong>Notas da Agência sobre esta versão:</strong>{' '}
+                      <div
+                        style={{
+                          background: 'var(--bg-subtle)',
+                          padding: '0.75rem 1rem',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-hairline)',
+                          fontSize: '0.8125rem',
+                        }}
+                      >
+                        <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                          NOTAS DA EQUIPE:
+                        </strong>{' '}
                         <span style={{ color: 'var(--text-secondary)' }}>
-                          {latestVersion.notes || 'Sem comentários adicionais da equipe.'}
+                          {latestVersion.notes || 'Sem comentários adicionais da agência.'}
                         </span>
                       </div>
                     )}
@@ -318,20 +448,31 @@ export const ClientPortalPage: React.FC = () => {
         {/* Approved Deliverables Section */}
         {approvedItems.length > 0 && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <CheckCircle2 size={20} color="var(--color-success)" />
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 700 }}>Entregas Concluídas & Aprovadas</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <CheckCircle2 size={16} style={{ color: 'var(--accent-primary)' }} />
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
+                Entregas Concluídas & Aprovadas
+              </h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '0.75rem' }}>
               {approvedItems.map((item) => (
-                <div key={item.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div
+                  key={item.id}
+                  className="card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    padding: '1rem',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>{item.title}</h3>
+                    <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>{item.title}</h3>
                     <StatusBadge status="APPROVED" />
                   </div>
-                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                    Versão final aprovada: v{item.currentVersionNumber}
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', margin: 0 }}>
+                    VERSÃO APROVADA: v{item.currentVersionNumber}
                   </p>
                 </div>
               ))}
@@ -344,18 +485,29 @@ export const ClientPortalPage: React.FC = () => {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={decision === 'APPROVED' ? 'Confirmar Aprovação do Entregável' : 'Solicitar Ajustes no Entregável'}
+        title={decision === 'APPROVED' ? 'Aprovar Entregável' : 'Solicitar Ajustes'}
       >
-        <form onSubmit={handleDecisionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+        <form onSubmit={handleDecisionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
             {decision === 'APPROVED'
-              ? `Você está aprovando o item "${selectedDeliverable?.title}". Isso sinalizará à equipe da agência que o material está aprovado.`
-              : `Descreva detalhadamente os ajustes que você gostaria que a agência fizesse no item "${selectedDeliverable?.title}".`}
+              ? `Você está aprovando "${selectedDeliverable?.title}". A agência receberá o aceite formal para prosseguir.`
+              : `Descreva detalhadamente os ajustes solicitados para "${selectedDeliverable?.title}".`}
           </p>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
-              {decision === 'APPROVED' ? 'Comentário ou Elogio (Opcional)' : 'Descrição dos Ajustes Solicitados *'}
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.375rem',
+              }}
+            >
+              {decision === 'APPROVED' ? 'Comentário ou Feedback (Opcional)' : 'Descrição dos Ajustes *'}
             </label>
             <textarea
               rows={4}
@@ -364,13 +516,13 @@ export const ClientPortalPage: React.FC = () => {
               onChange={(e) => setComment(e.target.value)}
               placeholder={
                 decision === 'APPROVED'
-                  ? 'Ex: Ficou excelente! Podem prosseguir com a publicação.'
-                  : 'Ex: Por favor trocar a cor do botão principal para azul marinho e ajustar a imagem do banner...'
+                  ? 'Ex: Aprovado! Segue perfeitamente o alinhamento da reunião.'
+                  : 'Ex: Ajustar contraste do rodapé e trocar o logo para versão monocromática...'
               }
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)' }}>
             <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary btn-sm">
               Cancelar
             </button>
@@ -383,7 +535,7 @@ export const ClientPortalPage: React.FC = () => {
                 ? 'Gravando...'
                 : decision === 'APPROVED'
                 ? 'Confirmar Aprovação'
-                : 'Enviar Solicitação de Ajustes'}
+                : 'Enviar Solicitação'}
             </button>
           </div>
         </form>
@@ -391,3 +543,4 @@ export const ClientPortalPage: React.FC = () => {
     </div>
   );
 };
+

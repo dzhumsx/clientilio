@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, ArrowRight, Lock, Mail, User, Building2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User, Building2, AlertCircle, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
@@ -12,6 +13,7 @@ export const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const { register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,67 +46,157 @@ export const RegisterPage: React.FC = () => {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'var(--bg-main)',
+        background: 'var(--bg-canvas)',
         padding: '1.5rem',
+        position: 'relative',
       }}
     >
+      {/* Top Bar with Brand Link & Theme Toggle */}
       <div
-        className="glass-panel"
         style={{
-          width: '100%',
-          maxWidth: '460px',
-          padding: '2.5rem',
-          boxShadow: 'var(--shadow-lg)',
+          position: 'absolute',
+          top: '1.5rem',
+          left: '1.5rem',
+          right: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <Link
+          to="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            textDecoration: 'none',
+            color: 'var(--text-primary)',
+          }}
+        >
           <div
             style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-gradient)',
+              width: 22,
+              height: 22,
+              borderRadius: '5px',
+              background: 'var(--accent-primary)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.6875rem',
+              fontWeight: 900,
+              boxShadow: 'var(--accent-glow)',
+            }}
+          >
+            ▲
+          </div>
+          <span style={{ fontWeight: 600, fontSize: '0.875rem', letterSpacing: '-0.02em' }}>
+            NEXORA
+          </span>
+        </Link>
+
+        <button
+          onClick={toggleTheme}
+          aria-label="Alternar tema"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '6px',
+            border: '1px solid var(--border-hairline)',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-secondary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          padding: '2rem',
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: '8px',
+              background: 'var(--accent-primary)',
+              color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 1rem',
+              fontSize: '1.1rem',
+              fontWeight: 900,
               boxShadow: 'var(--accent-glow)',
             }}
           >
-            <Sparkles size={22} color="#fff" />
+            ▲
           </div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Comece no Nexora</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Crie o portal da sua agência em menos de 1 minuto
+          <h2
+            style={{
+              fontSize: '1.375rem',
+              fontWeight: 600,
+              letterSpacing: '-0.035em',
+              color: 'var(--text-primary)',
+              margin: '0 0 0.35rem 0',
+            }}
+          >
+            Criar Conta para sua Agência
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', margin: 0 }}>
+            Configure o portal de clientes e campanhas em instantes
           </p>
         </div>
 
         {error && (
           <div
             style={{
-              background: 'var(--color-danger-bg)',
-              border: '1px solid rgba(244, 63, 94, 0.3)',
-              borderRadius: 'var(--radius-md)',
-              padding: '0.75rem 1rem',
-              marginBottom: '1.5rem',
+              background: 'rgba(239, 68, 68, 0.08)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              borderRadius: '6px',
+              padding: '0.625rem 0.875rem',
+              marginBottom: '1.25rem',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-              color: 'var(--color-danger)',
-              fontSize: '0.85rem',
+              alignItems: 'flex-start',
+              gap: '0.5rem',
+              color: '#ef4444',
+              fontSize: '0.8125rem',
+              fontFamily: 'var(--font-mono)',
             }}
           >
-            <AlertCircle size={16} />
+            <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
-              Seu Nome Completo
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Nome Completo
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -113,19 +205,35 @@ export const RegisterPage: React.FC = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex: Cristian Silva"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: '2.25rem', height: '36px' }}
               />
               <User
-                size={16}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }}
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
-              Nome da sua Agência ou Estúdio
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Nome da Agência ou Estúdio
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -133,18 +241,34 @@ export const RegisterPage: React.FC = () => {
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Ex: Studio Alpha Criativo"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: '2.25rem', height: '36px' }}
               />
               <Building2
-                size={16}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }}
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.375rem',
+              }}
+            >
               E-mail de Trabalho
             </label>
             <div style={{ position: 'relative' }}>
@@ -154,19 +278,35 @@ export const RegisterPage: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="cristian@agencia.com"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: '2.25rem', height: '36px' }}
               />
               <Mail
-                size={16}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }}
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
-              Senha de Acesso (mínimo 8 caracteres)
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.071em',
+                textTransform: 'uppercase',
+                color: 'var(--text-secondary)',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Senha (mínimo 8 caracteres)
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -175,12 +315,17 @@ export const RegisterPage: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                style={{ paddingLeft: '2.5rem' }}
+                style={{ paddingLeft: '2.25rem', height: '36px' }}
               />
               <Lock
-                size={16}
-                color="var(--text-muted)"
-                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }}
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                }}
               />
             </div>
           </div>
@@ -189,16 +334,38 @@ export const RegisterPage: React.FC = () => {
             type="submit"
             disabled={loading}
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem' }}
+            style={{
+              width: '100%',
+              marginTop: '0.5rem',
+              height: '36px',
+              justifyContent: 'center',
+            }}
           >
-            {loading ? 'Criando conta...' : 'Criar Conta Gratuita'}
-            {!loading && <ArrowRight size={16} />}
+            {loading ? 'Criando conta...' : 'Criar Conta Corporativa'}
+            {!loading && <ArrowRight size={14} />}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '1.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            marginTop: '1.5rem',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid var(--border-hairline)',
+            fontSize: '0.8125rem',
+            color: 'var(--text-secondary)',
+          }}
+        >
           Já possui uma conta?{' '}
-          <Link to="/login" style={{ fontWeight: 600, color: 'var(--text-link)' }}>
+          <Link
+            to="/login"
+            style={{
+              fontWeight: 600,
+              color: 'var(--accent-primary)',
+              textDecoration: 'none',
+              borderBottom: '1px solid var(--accent-primary)',
+            }}
+          >
             Fazer login
           </Link>
         </div>
@@ -206,3 +373,4 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
+
