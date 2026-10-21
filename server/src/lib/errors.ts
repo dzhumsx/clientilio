@@ -137,12 +137,46 @@ export function errorHandler(
     return;
   }
 
-  // Prisma connection errors (e.g. database offline)
-  if ((err as any).code === 'P1001' || err.message?.includes("Can't reach database server")) {
+  // Prisma connection & initialization errors (database offline, wrong credentials, unreachable host)
+  const isPrismaDbConnectionError =
+    (err as any).code === 'P1000' ||
+    (err as any).code === 'P1001' ||
+    (err as any).code === 'P1002' ||
+    (err as any).code === 'P1003' ||
+    (err as any).code === 'P1017' ||
+    err.name === 'PrismaClientInitializationError' ||
+    err.message?.includes("Can't reach database server");
+
+  if (isPrismaDbConnectionError) {
     res.status(503).json({
       error: {
-        message: 'Não foi possível conectar ao banco de dados PostgreSQL. Verifique se o banco está ativo ou configure a DATABASE_URL no arquivo server/.env.',
+        message:
+          'Não foi possível conectar ao banco de dados PostgreSQL. Certifique-se de iniciar o banco de dados (ex: `docker compose up -d` ou via Railway/Neon) e que a variável DATABASE_URL em server/.env está correta.',
         code: 'DATABASE_UNAVAILABLE',
+      },
+    });
+    return;
+  }
+
+  // Prisma unique constraint violation (e.g. duplicate email, slug)
+  if ((err as any).code === 'P2002') {
+    const target = (err as any).meta?.target;
+    const fields = Array.isArray(target) ? target.join(', ') : target || 'campo';
+    res.status(409).json({
+      error: {
+        message: `Já existe um registro cadastrado com este ${fields}.`,
+        code: 'CONFLICT',
+      },
+    });
+    return;
+  }
+
+  // Prisma record not found
+  if ((err as any).code === 'P2025') {
+    res.status(404).json({
+      error: {
+        message: 'O registro solicitado não foi encontrado no banco de dados.',
+        code: 'NOT_FOUND',
       },
     });
     return;

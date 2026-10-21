@@ -6,7 +6,12 @@
     "build": "npm --prefix client install && npm --prefix client run build && npm --prefix server install && npm --prefix server run prisma:generate && npm --prefix server run build",
     "start": "node server/dist/index.js",
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
-    "postinstall": "npm --prefix server run prisma:generate"
+    "postinstall": "npm --prefix server run prisma:generate",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:push": "npm --prefix server run prisma:push",
+    "db:seed": "npm --prefix server run prisma:seed",
+    "db:studio": "npm --prefix server run prisma:studio"
   },
   "keywords": ["saas", "agency", "client-portal", "railway"],
   "author": "",
