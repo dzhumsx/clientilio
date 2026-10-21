@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle2, Sparkles, Zap, AlertCircle, ArrowUpRight } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
+import { Modal } from '../components/Modal';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { SubscriptionInfo } from '../types';
@@ -11,6 +12,8 @@ export const BillingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
 
   const fetchBilling = async () => {
     if (!currentOrg) return;
@@ -29,6 +32,79 @@ export const BillingPage: React.FC = () => {
     fetchBilling();
   }, [currentOrg]);
 
+  useEffect(() => {
+    if (!isCheckoutModalOpen || !checkoutClientSecret) return;
+
+    let isMounted = true;
+
+    const setupCheckoutForm = async () => {
+      try {
+        const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_...';
+        const stripeWindow = (window as any).Stripe;
+        if (!stripeWindow) {
+          console.error('Stripe.js Dahlia SDK not loaded.');
+          return;
+        }
+
+        const stripe = stripeWindow(stripePublishableKey);
+
+        const appearance = {
+          theme: 'stripe',
+          labels: 'auto',
+          inputs: 'spaced',
+          variables: {
+            borderRadius: '4px',
+            colorBackground: '#ffffff',
+            colorDanger: '#df1b41',
+            colorPrimary: '#0570de',
+            colorSuccess: '#00c853',
+            colorText: '#30313d',
+            fontFamily: 'default',
+            fontSizeBase: '16px',
+            spacingUnit: '4px',
+          },
+        };
+
+        const checkout = await stripe.initCheckoutFormSdk({
+          clientSecret: checkoutClientSecret,
+          appearance,
+        });
+
+        if (!isMounted) return;
+
+        const form = checkout.createForm({ layout: 'expanded' });
+        form.mount('#checkout-form');
+
+        const loadActionsResult = await checkout.loadActions();
+        if (loadActionsResult.type === 'success') {
+          form.on('confirm', async (event: any) => {
+            try {
+              await loadActionsResult.actions.confirm({ formConfirmEvent: event });
+              setMessage('Pagamento confirmado com sucesso!');
+              setIsCheckoutModalOpen(false);
+              setCheckoutClientSecret(null);
+              await fetchBilling();
+              await refreshProfile();
+            } catch (error) {
+              console.error('Payment confirmation error:', error);
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Failed to initialize or mount Stripe checkout form:', err);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      setupCheckoutForm();
+    }, 50);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [isCheckoutModalOpen, checkoutClientSecret]);
+
   const handleCheckout = async (planId: string) => {
     setUpgradingPlan(planId);
     setMessage(null);
@@ -36,17 +112,15 @@ export const BillingPage: React.FC = () => {
     try {
       const { data } = await api.post('/billing/checkout', {
         planId,
-        successUrl: window.location.href,
-        cancelUrl: window.location.href,
       });
 
       if (data.simulated) {
         setMessage(`Plano alterado com sucesso para ${planId.toUpperCase()}! (Modo Simulação MVP)`);
         await fetchBilling();
         await refreshProfile();
-      } else if (data.url) {
-        // Redirect to Stripe Checkout Session
-        window.location.href = data.url;
+      } else if (data.client_secret) {
+        setCheckoutClientSecret(data.client_secret);
+        setIsCheckoutModalOpen(true);
       }
     } catch (err: any) {
       console.error('Failed to initiate checkout:', err);
@@ -282,6 +356,19 @@ export const BillingPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => {
+          setIsCheckoutModalOpen(false);
+          setCheckoutClientSecret(null);
+        }}
+        title="Finalizar Pagamento Seguro"
+      >
+        <div style={{ minHeight: '400px', padding: '0.5rem 0' }}>
+          <div id="checkout-form"></div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -28,7 +28,7 @@ export const ClientsPage: React.FC = () => {
     setLoading(true);
     try {
       const { data } = await api.get(`/clients?status=${statusFilter}${search ? `&search=${encodeURIComponent(search)}` : ''}`);
-      setClients(data.clients || []);
+      setClients(data.clients || data.data || []);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
     } finally {

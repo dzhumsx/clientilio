@@ -137,6 +137,17 @@ export function errorHandler(
     return;
   }
 
+  // Prisma connection errors (e.g. database offline)
+  if ((err as any).code === 'P1001' || err.message?.includes("Can't reach database server")) {
+    res.status(503).json({
+      error: {
+        message: 'Não foi possível conectar ao banco de dados PostgreSQL. Verifique se o banco está ativo ou configure a DATABASE_URL no arquivo server/.env.',
+        code: 'DATABASE_UNAVAILABLE',
+      },
+    });
+    return;
+  }
+
   // Unexpected errors — no stack trace in production
   console.error('Unhandled error:', err);
   const response: ErrorResponse = {

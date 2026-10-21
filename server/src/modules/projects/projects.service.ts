@@ -72,6 +72,7 @@ export class ProjectService {
     ]);
 
     return {
+      projects,
       data: projects,
       pagination: { page: input.page, limit: input.limit, total, totalPages: Math.ceil(total / input.limit) },
     };

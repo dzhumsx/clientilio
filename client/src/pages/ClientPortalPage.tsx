@@ -35,21 +35,12 @@ export const ClientPortalPage: React.FC = () => {
   const fetchPortalData = async () => {
     setLoading(true);
     try {
-      const projRes = await api.get('/projects');
-      const projs = projRes.data.projects || [];
-      setProjects(projs);
-
-      // Fetch deliverables for projects
-      const allDelivs: Deliverable[] = [];
-      for (const p of projs) {
-        try {
-          const res = await api.get(`/deliverables?projectId=${p.id}`);
-          allDelivs.push(...(res.data || []));
-        } catch (e) {
-          // ignore
-        }
-      }
-      setDeliverables(allDelivs);
+      const [projRes, delivRes] = await Promise.all([
+        api.get('/projects'),
+        api.get('/deliverables'),
+      ]);
+      setProjects(projRes.data.projects || projRes.data.data || []);
+      setDeliverables(delivRes.data || []);
     } catch (err) {
       console.error('Failed to load portal data:', err);
     } finally {

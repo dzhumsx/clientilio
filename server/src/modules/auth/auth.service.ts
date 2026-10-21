@@ -22,15 +22,27 @@ import type {
   ResetPasswordInput,
 } from './auth.validation';
 
-interface AuthResult {
+export interface AuthResult {
   user: { id: string; name: string; email: string };
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
   accessToken: string;
   refreshToken: string;
+  organizations: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    ownerId: string;
+    planId: string;
+    role?: string;
+  }>;
 }
 
 export class AuthService {
   /**
-   * Register a new user
+   * Register a new user and create their default organization
    */
   async register(input: RegisterInput): Promise<AuthResult> {
     const existing = await prisma.user.findUnique({
@@ -45,20 +57,44 @@ export class AuthService {
     const refreshTokenId = uuid();
     const rawRefreshToken = generateSecureToken();
 
-    const user = await prisma.user.create({
-      data: {
-        name: input.name,
-        email: input.email,
-        passwordHash,
-        refreshTokens: {
-          create: {
-            id: refreshTokenId,
-            tokenHash: hashToken(rawRefreshToken),
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    const orgName = input.companyName || `${input.name}'s Agency`;
+    const orgSlug = generateUniqueSlug(orgName);
+
+    // Create user, organization, owner membership and refresh token in a single transaction
+    const { user, organization } = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          passwordHash,
+          refreshTokens: {
+            create: {
+              id: refreshTokenId,
+              tokenHash: hashToken(rawRefreshToken),
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
           },
         },
-      },
-      select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true },
+      });
+
+      const newOrg = await tx.organization.create({
+        data: {
+          name: orgName,
+          slug: orgSlug,
+          ownerId: newUser.id,
+          planId: 'free',
+          memberships: {
+            create: {
+              userId: newUser.id,
+              role: 'OWNER',
+            },
+          },
+        },
+        select: { id: true, name: true, slug: true, ownerId: true, planId: true },
+      });
+
+      return { user: newUser, organization: newOrg };
     });
 
     const accessToken = generateAccessToken({
@@ -71,7 +107,20 @@ export class AuthService {
       tokenId: refreshTokenId,
     });
 
-    return { user, accessToken, refreshToken };
+    const orgList = [
+      {
+        ...organization,
+        role: 'OWNER',
+      },
+    ];
+
+    return {
+      user,
+      tokens: { accessToken, refreshToken },
+      accessToken,
+      refreshToken,
+      organizations: orgList,
+    };
   }
 
   /**
@@ -114,10 +163,27 @@ export class AuthService {
       tokenId: refreshTokenId,
     });
 
+    // Query active memberships with org details
+    const memberships = await prisma.membership.findMany({
+      where: { userId: user.id, isActive: true },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, ownerId: true, planId: true },
+        },
+      },
+    });
+
+    const orgList = memberships.map((m) => ({
+      ...m.organization,
+      role: m.role,
+    }));
+
     return {
       user: { id: user.id, name: user.name, email: user.email },
+      tokens: { accessToken, refreshToken },
       accessToken,
       refreshToken,
+      organizations: orgList,
     };
   }
 
@@ -287,6 +353,7 @@ export class AuthService {
     });
 
     return {
+      user: { ...user },
       ...user,
       organizations: memberships.map((m) => ({
         ...m.organization,

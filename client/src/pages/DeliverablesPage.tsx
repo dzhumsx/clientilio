@@ -34,7 +34,7 @@ export const DeliverablesPage: React.FC = () => {
     setLoading(true);
     try {
       const projRes = await api.get('/projects');
-      const projs = projRes.data.projects || [];
+      const projs = projRes.data.projects || projRes.data.data || [];
       setProjects(projs);
 
       const projId = selectedProjectId || (projs.length > 0 ? projs[0].id : '');

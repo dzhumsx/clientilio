@@ -29,18 +29,14 @@ export const DashboardPage: React.FC = () => {
     if (!currentOrg) return;
     setLoading(true);
     try {
-      const [clientsRes, projectsRes] = await Promise.all([
+      const [clientsRes, projectsRes, delivRes] = await Promise.all([
         api.get('/clients?status=ACTIVE'),
         api.get('/projects'),
+        api.get('/deliverables'),
       ]);
-      setClients(clientsRes.data.clients || []);
-      setProjects(projectsRes.data.projects || []);
-
-      // If there are projects, fetch deliverables for first project
-      if (projectsRes.data.projects?.length > 0) {
-        const delivRes = await api.get(`/deliverables?projectId=${projectsRes.data.projects[0].id}`);
-        setDeliverables(delivRes.data || []);
-      }
+      setClients(clientsRes.data.clients || clientsRes.data.data || []);
+      setProjects(projectsRes.data.projects || projectsRes.data.data || []);
+      setDeliverables(delivRes.data || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {

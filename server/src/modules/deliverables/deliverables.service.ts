@@ -74,14 +74,19 @@ export class DeliverableService {
     });
   }
 
-  async listByProject(orgId: string, projectId: string) {
+  async listByProject(orgId: string, projectId?: string) {
+    const where: any = { organizationId: orgId };
+    if (projectId) {
+      where.projectId = projectId;
+    }
     return prisma.deliverable.findMany({
-      where: { organizationId: orgId, projectId },
+      where,
       include: {
         versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
         _count: { select: { versions: true, approvals: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   }
 

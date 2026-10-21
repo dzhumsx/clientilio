@@ -34,8 +34,8 @@ export const ProjectsPage: React.FC = () => {
         api.get('/projects'),
         api.get('/clients?status=ACTIVE'),
       ]);
-      setProjects(projRes.data.projects || []);
-      const activeClients = clientRes.data.clients || [];
+      setProjects(projRes.data.projects || projRes.data.data || []);
+      const activeClients = clientRes.data.clients || clientRes.data.data || [];
       setClients(activeClients);
       if (activeClients.length > 0 && !clientId) {
         setClientId(activeClients[0].id);

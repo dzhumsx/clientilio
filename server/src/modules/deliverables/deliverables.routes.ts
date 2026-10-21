@@ -62,11 +62,7 @@ router.put('/tasks/:id', ...orgMiddleware, requireTeamMember, async (req: Reques
 // GET /api/deliverables?projectId=xxx
 router.get('/deliverables', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const projectId = req.query.projectId as string;
-    if (!projectId) {
-      res.status(400).json({ error: { message: 'projectId is required' } });
-      return;
-    }
+    const projectId = req.query.projectId as string | undefined;
     const deliverables = await deliverableService.listByProject(req.organizationId!, projectId);
     res.json(deliverables);
   } catch (error) {

@@ -77,9 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', data.tokens.accessToken);
-    localStorage.setItem('refreshToken', data.tokens.refreshToken);
-    setUser(data.user);
+    const accessToken = data.tokens?.accessToken || data.accessToken;
+    const refreshToken = data.tokens?.refreshToken || data.refreshToken;
+    if (accessToken) localStorage.setItem('token', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    setUser(data.user || data);
 
     const orgs = data.organizations || [];
     setOrganizations(orgs);
@@ -95,9 +97,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
       companyName,
     });
-    localStorage.setItem('token', data.tokens.accessToken);
-    localStorage.setItem('refreshToken', data.tokens.refreshToken);
-    setUser(data.user);
+    const accessToken = data.tokens?.accessToken || data.accessToken;
+    const refreshToken = data.tokens?.refreshToken || data.refreshToken;
+    if (accessToken) localStorage.setItem('token', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    setUser(data.user || data);
 
     const orgs = data.organizations || [];
     setOrganizations(orgs);

@@ -13,7 +13,7 @@ async function main() {
     console.warn('⚠️ Warning: Database connection check failed. Ensure PostgreSQL is running. Error:', err.message);
   }
 
-  const server = app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
     console.log(`📡 Healthcheck available at http://localhost:${env.PORT}/health`);
     console.log(`🔒 Multi-tenant Client Management API ready.`);

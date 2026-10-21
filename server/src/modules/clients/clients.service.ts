@@ -68,6 +68,7 @@ export class ClientService {
     ]);
 
     return {
+      clients,
       data: clients,
       pagination: {
         page: input.page,

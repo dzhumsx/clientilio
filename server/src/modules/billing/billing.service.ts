@@ -6,7 +6,7 @@ import { PLANS, PlanId, getPlanLimits } from '../../config/plans';
 import { SubscriptionStatus } from '@prisma/client';
 
 const stripe = env.STRIPE_SECRET_KEY
-  ? new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any })
+  ? new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' as any })
   : null;
 
 export class BillingService {
@@ -113,7 +113,7 @@ export class BillingService {
       });
 
       return {
-        url: `${successUrl}?status=success&plan=${targetPlanId}&mock=true`,
+        client_secret: `mock_secret_${targetPlanId}`,
         simulated: true,
       };
     }
@@ -130,9 +130,20 @@ export class BillingService {
       customerId = customer.id;
     }
 
-    // Stripe checkout session with monthly recurring subscription
+    // Stripe checkout session with embedded form
     const sessionParams: any = {
-      customer: customerId,
+      ui_mode: 'form',
+      mode: 'subscription',
+      billing_address_collection: 'auto',
+      phone_number_collection: {
+        enabled: false,
+      },
+      automatic_tax: {
+        enabled: false,
+      },
+      payment_method_collection: 'always',
+      submit_type: 'auto',
+      integration_identifier: 'custom_embedded_web_0001',
       line_items: [
         {
           price_data: {
@@ -147,13 +158,6 @@ export class BillingService {
           quantity: 1,
         },
       ],
-      mode: 'subscription',
-      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl,
-      metadata: {
-        organizationId: org.id,
-        planId: targetPlanId,
-      },
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
@@ -175,7 +179,7 @@ export class BillingService {
       },
     });
 
-    return { url: session.url, simulated: false };
+    return { client_secret: session.client_secret, simulated: false };
   }
 
   /**
