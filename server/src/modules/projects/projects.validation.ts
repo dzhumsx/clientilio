@@ -1,0 +1,31 @@
+import { z } from 'zod';
+
+export const createProjectSchema = z.object({
+  clientId: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  startDate: z.string().datetime().optional(),
+  dueDate: z.string().datetime().optional(),
+});
+
+export const updateProjectSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED']).optional(),
+  category: z.string().max(100).optional(),
+  startDate: z.string().datetime().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable(),
+});
+
+export const listProjectsSchema = z.object({
+  clientId: z.string().uuid().optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED', 'ALL']).optional().default('ALL'),
+  search: z.string().optional(),
+  page: z.coerce.number().min(1).optional().default(1),
+  limit: z.coerce.number().min(1).max(100).optional().default(20),
+});
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+export type ListProjectsInput = z.infer<typeof listProjectsSchema>;

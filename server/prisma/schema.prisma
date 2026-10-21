@@ -1,0 +1,619 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User — Global identity
+// ============================================
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  passwordHash  String
+  avatarUrl     String?
+  emailVerified Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships       Membership[]
+  refreshTokens     RefreshToken[]
+  passwordResets     PasswordReset[]
+  invitationsSent   Invitation[]      @relation("InvitationCreator")
+  clientAccesses    ClientAccess[]
+  comments          Comment[]
+  approvals         Approval[]
+  activityEvents    ActivityEvent[]   @relation("ActivityActor")
+  notifications     Notification[]
+  notifPreferences  NotificationPreference[]
+  filesUploaded     FileObject[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@map("password_resets")
+}
+
+// ============================================
+// Organization — Tenant principal
+// ============================================
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  planId    String   @default("free")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships     Membership[]
+  invitations     Invitation[]
+  clients         Client[]
+  projects        Project[]
+  tasks           Task[]
+  deliverables    Deliverable[]
+  fileObjects     FileObject[]
+  comments        Comment[]
+  approvals       Approval[]
+  activityEvents  ActivityEvent[]
+  notifications   Notification[]
+  subscription    Subscription?
+  brandSettings   BrandSettings?
+  customDomain    CustomDomain?
+  auditLogs       AuditLog[]
+  templates       ProjectTemplate[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+// ============================================
+// Membership — User ↔ Organization role
+// ============================================
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Membership {
+  id             String     @id @default(uuid())
+  organizationId String
+  userId         String
+  role           MemberRole @default(MEMBER)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  projectMembers ProjectMember[]
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+// ============================================
+// Invitation
+// ============================================
+enum InvitationType {
+  TEAM_MEMBER
+  CLIENT
+}
+
+model Invitation {
+  id             String         @id @default(uuid())
+  organizationId String
+  email          String
+  role           MemberRole     @default(MEMBER)
+  type           InvitationType @default(TEAM_MEMBER)
+  tokenHash      String         @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  revokedAt      DateTime?
+  createdById    String
+  clientId       String?
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("InvitationCreator", fields: [createdById], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([tokenHash])
+  @@map("invitations")
+}
+
+// ============================================
+// Client — Business client of the agency
+// ============================================
+enum ClientStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+model Client {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  email          String?
+  company        String?
+  notes          String?
+  status         ClientStatus @default(ACTIVE)
+  createdById    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projects      Project[]
+  clientAccesses ClientAccess[]
+  invitations    Invitation[]
+
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@map("clients")
+}
+
+// ============================================
+// ClientAccess — Links a user to a client for portal access
+// ============================================
+model ClientAccess {
+  id             String   @id @default(uuid())
+  organizationId String
+  clientId       String
+  userId         String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, userId])
+  @@index([userId])
+  @@index([clientId])
+  @@map("client_accesses")
+}
+
+// ============================================
+// Project
+// ============================================
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+model Project {
+  id             String        @id @default(uuid())
+  organizationId String
+  clientId       String
+  name           String
+  description    String?
+  status         ProjectStatus @default(DRAFT)
+  category       String?
+  startDate      DateTime?
+  dueDate        DateTime?
+  templateId     String?
+  createdById    String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+  deliverables Deliverable[]
+  comments     Comment[]
+  members      ProjectMember[]
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([organizationId, status])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id           String @id @default(uuid())
+  projectId    String
+  membershipId String
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, membershipId])
+  @@map("project_members")
+}
+
+// ============================================
+// Task
+// ============================================
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id             String       @id @default(uuid())
+  organizationId String
+  projectId      String
+  title          String
+  description    String?
+  status         TaskStatus   @default(TODO)
+  priority       TaskPriority @default(MEDIUM)
+  assigneeId     String?
+  dueDate        DateTime?
+  isChangeRequest Boolean     @default(false)
+  requestedById  String?
+  createdById    String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([projectId, status])
+  @@map("tasks")
+}
+
+// ============================================
+// Deliverable & Versions
+// ============================================
+enum DeliverableStatus {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  ARCHIVED
+}
+
+enum DeliverableType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  PRESENTATION
+  TEXT
+  CAPTION
+  REPORT
+  CREATIVE
+  BRANDING
+  EXTERNAL_PREVIEW
+  OTHER
+}
+
+model Deliverable {
+  id             String            @id @default(uuid())
+  organizationId String
+  projectId      String
+  title          String
+  description    String?
+  type           DeliverableType   @default(OTHER)
+  status         DeliverableStatus @default(DRAFT)
+  assigneeId     String?
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions     DeliverableVersion[]
+  approvals    Approval[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([projectId, status])
+  @@map("deliverables")
+}
+
+model DeliverableVersion {
+  id            String   @id @default(uuid())
+  organizationId String
+  deliverableId String
+  versionNumber Int
+  fileId        String?
+  externalUrl   String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  deliverable Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  file        FileObject? @relation(fields: [fileId], references: [id])
+  approvals   Approval[]
+
+  @@unique([deliverableId, versionNumber])
+  @@index([deliverableId])
+  @@map("deliverable_versions")
+}
+
+// ============================================
+// Approval
+// ============================================
+enum ApprovalDecision {
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Approval {
+  id             String           @id @default(uuid())
+  organizationId String
+  deliverableId  String
+  versionId      String
+  actorId        String
+  decision       ApprovalDecision
+  comment        String?
+  createdAt      DateTime         @default(now())
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deliverable  Deliverable        @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  version      DeliverableVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  actor        User               @relation(fields: [actorId], references: [id])
+
+  @@index([deliverableId])
+  @@index([versionId])
+  @@map("approvals")
+}
+
+// ============================================
+// File Object
+// ============================================
+model FileObject {
+  id             String   @id @default(uuid())
+  organizationId String
+  storageKey     String   @unique
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  uploadedById   String
+  createdAt      DateTime @default(now())
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User                 @relation(fields: [uploadedById], references: [id])
+  versions     DeliverableVersion[]
+
+  @@index([organizationId])
+  @@map("file_objects")
+}
+
+// ============================================
+// Comment
+// ============================================
+enum CommentVisibility {
+  INTERNAL
+  CLIENT_VISIBLE
+}
+
+model Comment {
+  id             String            @id @default(uuid())
+  organizationId String
+  resourceType   String
+  resourceId     String
+  authorId       String
+  body           String
+  visibility     CommentVisibility @default(CLIENT_VISIBLE)
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id])
+  project      Project?     @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([resourceType, resourceId])
+  @@map("comments")
+}
+
+// ============================================
+// Activity Event
+// ============================================
+model ActivityEvent {
+  id             String   @id @default(uuid())
+  organizationId String
+  actorId        String
+  resourceType   String
+  resourceId     String
+  eventType      String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User         @relation("ActivityActor", fields: [actorId], references: [id])
+
+  @@index([organizationId])
+  @@index([resourceType, resourceId])
+  @@index([organizationId, createdAt])
+  @@map("activity_events")
+}
+
+// ============================================
+// Notification
+// ============================================
+model Notification {
+  id             String    @id @default(uuid())
+  userId         String
+  organizationId String
+  type           String
+  title          String
+  message        String
+  linkUrl        String?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([organizationId])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id           String  @id @default(uuid())
+  userId       String
+  eventType    String
+  inAppEnabled Boolean @default(true)
+  emailEnabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventType])
+  @@map("notification_preferences")
+}
+
+// ============================================
+// Subscription & Billing
+// ============================================
+enum SubscriptionStatus {
+  FREE
+  CHECKOUT_INITIATED
+  ACTIVE
+  PAYMENT_PENDING
+  PAYMENT_FAILED
+  GRACE_PERIOD
+  CANCEL_SCHEDULED
+  CANCELLED
+  EXPIRED
+}
+
+model Subscription {
+  id                     String             @id @default(uuid())
+  organizationId         String             @unique
+  provider               String             @default("stripe")
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  status                 SubscriptionStatus @default(FREE)
+  planId                 String             @default("free")
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([providerCustomerId])
+  @@index([providerSubscriptionId])
+  @@map("subscriptions")
+}
+
+// ============================================
+// Branding
+// ============================================
+model BrandSettings {
+  id             String  @id @default(uuid())
+  organizationId String  @unique
+  displayName    String?
+  logoFileId     String?
+  primaryColor   String  @default("#6366f1")
+  accentColor    String  @default("#8b5cf6")
+  hideVendorBrand Boolean @default(false)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("brand_settings")
+}
+
+model CustomDomain {
+  id                    String    @id @default(uuid())
+  organizationId        String    @unique
+  hostname              String    @unique
+  verificationStatus    String    @default("pending")
+  verificationTokenHash String?
+  verifiedAt            DateTime?
+  createdAt             DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("custom_domains")
+}
+
+// ============================================
+// Project Template
+// ============================================
+model ProjectTemplate {
+  id             String  @id @default(uuid())
+  organizationId String?
+  isGlobal       Boolean @default(false)
+  name           String
+  category       String?
+  description    String?
+  config         Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([isGlobal])
+  @@map("project_templates")
+}
+
+// ============================================
+// Audit Log
+// ============================================
+model AuditLog {
+  id             String   @id @default(uuid())
+  actorId        String?
+  organizationId String?
+  action         String
+  target         String?
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
