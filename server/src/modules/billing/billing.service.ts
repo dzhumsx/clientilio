@@ -29,12 +29,10 @@ export class BillingService {
     const planConfig = PLANS[currentPlanId] || PLANS.free;
     const limits = getPlanLimits(currentPlanId);
 
-    // Count usage
-    const [clientCount, projectCount, memberCount] = await Promise.all([
-      prisma.client.count({ where: { organizationId, status: 'ACTIVE' } }),
-      prisma.project.count({ where: { organizationId, status: { not: 'COMPLETED' } } }),
-      prisma.membership.count({ where: { organizationId, isActive: true } }),
-    ]);
+    // Count usage sequentially
+    const clientCount = await prisma.client.count({ where: { organizationId, status: 'ACTIVE' } });
+    const projectCount = await prisma.project.count({ where: { organizationId, status: { not: 'COMPLETED' } } });
+    const memberCount = await prisma.membership.count({ where: { organizationId, isActive: true } });
 
     return {
       organizationId: org.id,

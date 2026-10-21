@@ -10,7 +10,7 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor to attach access token & organization context
+// Request interceptor to attach access token, organization context & cookie consent
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token && config.headers) {
@@ -20,6 +20,11 @@ api.interceptors.request.use((config) => {
   const orgId = localStorage.getItem('currentOrganizationId');
   if (orgId && config.headers) {
     config.headers['x-organization-id'] = orgId;
+  }
+
+  const consentAccepted = localStorage.getItem('cookie_consent_accepted') === 'true';
+  if (consentAccepted && config.headers) {
+    config.headers['x-cookie-consent'] = 'true';
   }
 
   return config;

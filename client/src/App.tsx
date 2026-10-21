@@ -13,9 +13,14 @@ import { DeliverablesPage } from './pages/DeliverablesPage';
 import { BillingPage } from './pages/BillingPage';
 import { ClientPortalPage } from './pages/ClientPortalPage';
 
+import { Toaster } from 'react-hot-toast';
+import { CookieConsent } from './components/CookieConsent';
+
 export const App: React.FC = () => {
   return (
     <AuthProvider>
+      <Toaster position="top-right" toastOptions={{ style: { background: '#1e293b', color: '#fff', border: '1px solid #334155' } }} />
+      <CookieConsent />
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}

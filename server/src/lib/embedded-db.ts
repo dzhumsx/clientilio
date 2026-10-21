@@ -3,7 +3,9 @@ import path from 'path';
 import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 
-let pgliteServerInstance: PGLiteSocketServer | null = null;
+const globalForDb = globalThis as unknown as {
+  pgliteServerInstance: PGLiteSocketServer | undefined;
+};
 
 /**
  * Checks if a TCP port is currently open and accepting connections
@@ -64,13 +66,13 @@ export async function ensureDatabaseRunning(): Promise<boolean> {
     const dataDir = path.join(process.cwd(), '.pgdata');
     const db = await PGlite.create({ dataDir });
 
-    pgliteServerInstance = new PGLiteSocketServer({
+    globalForDb.pgliteServerInstance = new PGLiteSocketServer({
       db,
       port,
       host: '127.0.0.1',
     });
 
-    await pgliteServerInstance.start();
+    await globalForDb.pgliteServerInstance.start();
     console.log(`✅ Banco de dados PostgreSQL local pronto e persistido em .pgdata na porta ${port}!`);
     return true;
   } catch (err: any) {
@@ -83,11 +85,11 @@ export async function ensureDatabaseRunning(): Promise<boolean> {
  * Stop the embedded database gracefully on server shutdown
  */
 export async function stopEmbeddedDatabase(): Promise<void> {
-  if (pgliteServerInstance) {
+  if (globalForDb.pgliteServerInstance) {
     try {
       console.log('🛑 Encerrando banco de dados local embutido...');
-      await pgliteServerInstance.stop();
-      pgliteServerInstance = null;
+      await globalForDb.pgliteServerInstance.stop();
+      globalForDb.pgliteServerInstance = undefined;
       console.log('💤 Banco de dados local encerrado.');
     } catch (err: any) {
       console.warn('Erro ao encerrar banco embutido:', err.message);

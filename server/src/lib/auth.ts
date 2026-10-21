@@ -57,6 +57,22 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
 }
 
 // ============================================
+// Cookie session configuration (6 hours)
+// ============================================
+export const SESSION_COOKIE_NAME = 'token';
+export const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+export function getSessionCookieOptions(isProduction: boolean) {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+    maxAge: SESSION_MAX_AGE_MS,
+    path: '/',
+  };
+}
+
+// ============================================
 // Secure token generation for invites/resets
 // ============================================
 export function generateSecureToken(): string {

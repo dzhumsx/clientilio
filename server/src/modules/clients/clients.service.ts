@@ -50,22 +50,21 @@ export class ClientService {
       ];
     }
 
-    const [clients, total] = await Promise.all([
-      prisma.client.findMany({
-        where,
-        skip: (input.page - 1) * input.limit,
-        take: input.limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: {
-              projects: true,
-            },
+    const clients = await prisma.client.findMany({
+      where,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: {
+            projects: true,
           },
         },
-      }),
-      prisma.client.count({ where }),
-    ]);
+      },
+    });
+
+    const total = await prisma.client.count({ where });
 
     return {
       clients,
@@ -106,6 +105,9 @@ export class ClientService {
     return prisma.client.update({
       where: { id: clientId },
       data: input,
+      include: {
+        _count: { select: { projects: true } },
+      },
     });
   }
 
@@ -119,6 +121,9 @@ export class ClientService {
     return prisma.client.update({
       where: { id: clientId },
       data: { status: 'ARCHIVED' },
+      include: {
+        _count: { select: { projects: true } },
+      },
     });
   }
 
@@ -148,6 +153,9 @@ export class ClientService {
     return prisma.client.update({
       where: { id: clientId },
       data: { status: 'ACTIVE' },
+      include: {
+        _count: { select: { projects: true } },
+      },
     });
   }
 }

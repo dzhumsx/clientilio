@@ -33,7 +33,7 @@ async function main() {
       name: 'Agência Nexora Demo',
       slug: 'agencia-nexora-demo',
       ownerId: user.id,
-      planId: 'agency_pro',
+      planId: 'agency',
       memberships: {
         create: {
           userId: user.id,

@@ -3,6 +3,7 @@ import { generateUniqueSlug, generateSecureToken, hashToken } from '../../lib/au
 import { NotFoundError, ForbiddenError, ConflictError, PlanLimitError } from '../../lib/errors';
 import { getPlanLimits } from '../../config/plans';
 import { MemberRole } from '@prisma/client';
+import { invalidateOrgContextCache } from '../../middleware/auth';
 import type { CreateOrganizationInput, UpdateOrganizationInput, InviteMemberInput } from './organizations.validation';
 
 export class OrganizationService {
@@ -242,6 +243,8 @@ export class OrganizationService {
       });
     });
 
+    invalidateOrgContextCache(invitation.organizationId, userId);
+
     return {
       organization: invitation.organization,
       role: result.role,
@@ -254,6 +257,7 @@ export class OrganizationService {
   async removeMember(orgId: string, membershipId: string, actorRole: MemberRole) {
     const membership = await prisma.membership.findFirst({
       where: { id: membershipId, organizationId: orgId },
+      select: { id: true, userId: true, role: true },
     });
 
     if (!membership) {
@@ -272,6 +276,8 @@ export class OrganizationService {
       where: { id: membershipId },
       data: { isActive: false },
     });
+
+    invalidateOrgContextCache(orgId, membership.userId);
 
     return { message: 'Member removed successfully' };
   }

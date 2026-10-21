@@ -15,11 +15,13 @@ import {
   NotFoundError,
 } from '../../lib/errors';
 import { v4 as uuid } from 'uuid';
+import { mfaService } from '../../lib/mfa.service';
 import type {
   RegisterInput,
   LoginInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  UpdateProfileInput,
 } from './auth.validation';
 
 export interface AuthResult {
@@ -38,6 +40,8 @@ export interface AuthResult {
     planId: string;
     role?: string;
   }>;
+  mfaRequired?: boolean;
+  mfaTicket?: string;
 }
 
 export class AuthService {
@@ -83,7 +87,7 @@ export class AuthService {
           name: orgName,
           slug: orgSlug,
           ownerId: newUser.id,
-          planId: 'free',
+          planId: 'agency',
           memberships: {
             create: {
               userId: newUser.id,
@@ -140,6 +144,29 @@ export class AuthService {
     if (!isValid) {
       throw new UnauthorizedError('Invalid email or password');
     }
+
+    // Se o usuário possuir MFA ativo, emite ticket temporário de desafio
+    const isMfaActive = await mfaService.isMfaEnabled(user.id);
+    if (isMfaActive) {
+      const mfaTicket = mfaService.generateMfaTicket(user.id);
+      return {
+        mfaRequired: true,
+        mfaTicket,
+      } as any;
+    }
+
+    return this.completeMfaLogin(user.id);
+  }
+
+  /**
+   * Finaliza o login (direto ou após validação bem sucedida do 2FA/MFA)
+   */
+  async completeMfaLogin(userId: string): Promise<AuthResult> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+    if (!user) throw new NotFoundError('User');
 
     const refreshTokenId = uuid();
     const rawRefreshToken = generateSecureToken();
@@ -320,10 +347,10 @@ export class AuthService {
       throw new NotFoundError('User');
     }
 
-    // Get user's organizations
     const memberships = await prisma.membership.findMany({
       where: { userId, isActive: true },
-      include: {
+      select: {
+        role: true,
         organization: {
           select: {
             id: true,
@@ -335,10 +362,9 @@ export class AuthService {
       },
     });
 
-    // Also check client accesses
     const clientAccesses = await prisma.clientAccess.findMany({
       where: { userId, isActive: true },
-      include: {
+      select: {
         client: {
           select: {
             id: true,
@@ -367,5 +393,24 @@ export class AuthService {
         organizationSlug: ca.client.organization.slug,
       })),
     };
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: input,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatarUrl: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+    return updated;
   }
 }

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle2, Clock, Upload, ExternalLink, AlertCircle, FileText, Send } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, Upload, ExternalLink, AlertCircle, FileText, Send, Edit2 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Deliverable, Project } from '../types';
+import toast from 'react-hot-toast';
 
 export const DeliverablesPage: React.FC = () => {
   const { currentOrg } = useAuth();
@@ -14,8 +15,9 @@ export const DeliverablesPage: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  // New Deliverable Modal
+  // Deliverable Modal (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [clientVisible, setClientVisible] = useState(true);
@@ -56,27 +58,66 @@ export const DeliverablesPage: React.FC = () => {
     fetchProjectsAndDeliverables();
   }, [currentOrg, selectedProjectId]);
 
-  const handleCreateDeliverable = async (e: React.FormEvent) => {
+  const handleOpenCreateDeliverable = () => {
+    if (projects.length === 0) {
+      alert('Crie um projeto antes de adicionar entregáveis.');
+      return;
+    }
+    setEditingDeliverable(null);
+    setTitle('');
+    setDescription('');
+    setClientVisible(true);
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditDeliverable = (d: Deliverable) => {
+    setEditingDeliverable(d);
+    setTitle(d.title);
+    setDescription(d.description || '');
+    setClientVisible(d.clientVisible);
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveDeliverable = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProjectId) return;
     setFormError(null);
     setSubmitting(true);
 
     try {
-      await api.post('/deliverables', {
-        projectId: selectedProjectId,
-        title,
-        description: description || undefined,
-        clientVisible,
-      });
+      if (editingDeliverable) {
+        // Query de update do entregável
+        const { data: updated } = await api.put(`/deliverables/${editingDeliverable.id}`, {
+          title,
+          description: description || undefined,
+        });
 
-      setIsModalOpen(false);
-      setTitle('');
-      setDescription('');
+        // Atualiza imediatamente a exibição do conteúdo com as mudanças
+        setDeliverables((prev) =>
+          prev.map((d) => (d.id === editingDeliverable.id ? { ...d, ...updated } : d))
+        );
+        toast.success('Entregável atualizado com sucesso!');
+        setIsModalOpen(false);
+        setEditingDeliverable(null);
+      } else {
+        const { data: newDeliv } = await api.post('/deliverables', {
+          projectId: selectedProjectId,
+          title,
+          description: description || undefined,
+          clientVisible,
+        });
+
+        setDeliverables((prev) => [newDeliv, ...prev]);
+        toast.success('Entregável criado com sucesso!');
+        setIsModalOpen(false);
+      }
+
       fetchProjectsAndDeliverables();
     } catch (err: any) {
-      console.error('Failed to create deliverable:', err);
-      setFormError(err.response?.data?.error?.message || 'Erro ao criar entregável.');
+      console.error('Failed to save deliverable:', err);
+      setFormError(err.response?.data?.error?.message || 'Erro ao salvar entregável.');
     } finally {
       setSubmitting(false);
     }
@@ -88,11 +129,23 @@ export const DeliverablesPage: React.FC = () => {
     setSubmitting(true);
 
     try {
-      await api.post(`/deliverables/${activeDeliverable.id}/versions`, {
+      const { data: newVersion } = await api.post(`/deliverables/${activeDeliverable.id}/versions`, {
         title: versionTitle || undefined,
         externalUrl: externalUrl || undefined,
         notes: versionNotes || undefined,
       });
+
+      // Atualiza imediatamente a exibição
+      setDeliverables((prev) =>
+        prev.map((d) => {
+          if (d.id === activeDeliverable.id) {
+            const versions = [newVersion, ...(d.versions || [])];
+            return { ...d, versions, currentVersionNumber: newVersion.versionNumber };
+          }
+          return d;
+        })
+      );
+      toast.success('Nova versão adicionada!');
 
       setVersionModalOpen(false);
       setActiveDeliverable(null);
@@ -100,8 +153,9 @@ export const DeliverablesPage: React.FC = () => {
       setExternalUrl('');
       setVersionNotes('');
       fetchProjectsAndDeliverables();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add version:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao adicionar versão');
     } finally {
       setSubmitting(false);
     }
@@ -109,10 +163,16 @@ export const DeliverablesPage: React.FC = () => {
 
   const handleSubmitForReview = async (deliverableId: string) => {
     try {
-      await api.post(`/deliverables/${deliverableId}/submit`);
+      const { data: updated } = await api.post(`/deliverables/${deliverableId}/submit`);
+      // Atualiza imediatamente a exibição do conteúdo
+      setDeliverables((prev) =>
+        prev.map((d) => (d.id === deliverableId ? { ...d, ...(updated || {}), status: 'IN_REVIEW' } : d))
+      );
+      toast.success('Entregável enviado para aprovação do cliente!');
       fetchProjectsAndDeliverables();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit for review:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao submeter entregável');
     }
   };
 
@@ -123,13 +183,7 @@ export const DeliverablesPage: React.FC = () => {
         subtitle="Versionamento de arquivos e fluxo de aceite com os clientes"
         actions={
           <button
-            onClick={() => {
-              if (projects.length === 0) {
-                alert('Crie um projeto antes de adicionar entregáveis.');
-                return;
-              }
-              setIsModalOpen(true);
-            }}
+            onClick={handleOpenCreateDeliverable}
             className="btn btn-primary btn-sm"
           >
             <Plus size={16} />
@@ -211,6 +265,15 @@ export const DeliverablesPage: React.FC = () => {
                         <span>Enviar p/ Cliente</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => handleOpenEditDeliverable(d)}
+                      className="btn btn-outline btn-sm"
+                      title="Editar entregável"
+                    >
+                      <Edit2 size={14} />
+                      <span>Editar</span>
+                    </button>
 
                     <button
                       onClick={() => {
@@ -297,9 +360,16 @@ export const DeliverablesPage: React.FC = () => {
         )}
       </div>
 
-      {/* New Deliverable Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Novo Entregável">
-        <form onSubmit={handleCreateDeliverable} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Deliverable Modal (Create & Edit) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingDeliverable(null);
+        }}
+        title={editingDeliverable ? 'Editar Entregável' : 'Novo Entregável'}
+      >
+        <form onSubmit={handleSaveDeliverable} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {formError && (
             <div style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)', padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
               {formError}
@@ -331,25 +401,34 @@ export const DeliverablesPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <input
-              type="checkbox"
-              id="clientVis"
-              checked={clientVisible}
-              onChange={(e) => setClientVisible(e.target.checked)}
-              style={{ width: 'auto' }}
-            />
-            <label htmlFor="clientVis" style={{ fontSize: '0.85rem', cursor: 'pointer' }}>
-              Visível no portal do cliente imediatamente
-            </label>
-          </div>
+          {!editingDeliverable && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                id="clientVis"
+                checked={clientVisible}
+                onChange={(e) => setClientVisible(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              <label htmlFor="clientVis" style={{ fontSize: '0.85rem', cursor: 'pointer' }}>
+                Visível no portal do cliente imediatamente
+              </label>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary btn-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingDeliverable(null);
+              }}
+              className="btn btn-secondary btn-sm"
+            >
               Cancelar
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : 'Criar Entregável'}
+              {submitting ? 'Salvando...' : editingDeliverable ? 'Salvar Alterações' : 'Criar Entregável'}
             </button>
           </div>
         </form>

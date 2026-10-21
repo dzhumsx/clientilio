@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyAccessToken, AccessTokenPayload } from '../lib/auth';
+import { verifyAccessToken, AccessTokenPayload, SESSION_COOKIE_NAME } from '../lib/auth';
 import { UnauthorizedError, ForbiddenError } from '../lib/errors';
 import { prisma } from '../lib/prisma';
 import { MemberRole } from '@prisma/client';
@@ -17,16 +17,31 @@ declare global {
 }
 
 /**
- * Authenticate: Extract and verify JWT from Authorization header
+ * Authenticate: Extract and verify JWT from Cookie or Authorization header
+ * Validates session on all protected requests
  */
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
+    // 1. Try to extract token from cookies
+    let token =
+      req.cookies?.[SESSION_COOKIE_NAME] ||
+      req.cookies?.token ||
+      req.cookies?.session_token ||
+      req.cookies?.accessToken;
+
+    // 2. Fallback to Authorization header
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
       throw new UnauthorizedError('No token provided');
     }
 
-    const token = authHeader.substring(7);
+    // 3. Verify JWT validity and expiration (6 hours validity)
     const payload = verifyAccessToken(token);
     req.user = payload;
     next();
@@ -39,8 +54,41 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
   }
 }
 
+interface CachedOrgContext {
+  role?: MemberRole;
+  isClientUser: boolean;
+  expiresAt: number;
+}
+
+const orgContextCache = new Map<string, CachedOrgContext>();
+const ORG_CONTEXT_TTL_MS = 60 * 1000; // 60s cache
+const MAX_ORG_CACHE_SIZE = 5000;
+
 /**
- * Resolve org: Extract organizationId from header and verify membership
+ * Invalidate organization context cache when roles or memberships change
+ */
+export function invalidateOrgContextCache(orgId?: string, userId?: string) {
+  if (orgId && userId) {
+    orgContextCache.delete(`${orgId}:${userId}`);
+  } else if (orgId) {
+    for (const key of orgContextCache.keys()) {
+      if (key.startsWith(`${orgId}:`)) {
+        orgContextCache.delete(key);
+      }
+    }
+  } else if (userId) {
+    for (const key of orgContextCache.keys()) {
+      if (key.endsWith(`:${userId}`)) {
+        orgContextCache.delete(key);
+      }
+    }
+  } else {
+    orgContextCache.clear();
+  }
+}
+
+/**
+ * Resolve org: Extract organizationId from header and verify membership (cached)
  */
 export function resolveOrganization() {
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
@@ -54,7 +102,19 @@ export function resolveOrganization() {
         throw new ForbiddenError('Organization context required');
       }
 
-      // Check membership
+      const cacheKey = `${orgId}:${req.user.userId}`;
+      const now = Date.now();
+      const cached = orgContextCache.get(cacheKey);
+
+      if (cached && cached.expiresAt > now) {
+        req.organizationId = orgId;
+        req.memberRole = cached.role;
+        req.isClientUser = cached.isClientUser;
+        next();
+        return;
+      }
+
+      // Check membership with lean select
       const membership = await prisma.membership.findUnique({
         where: {
           organizationId_userId: {
@@ -62,9 +122,19 @@ export function resolveOrganization() {
             userId: req.user.userId,
           },
         },
+        select: { role: true, isActive: true },
       });
 
       if (membership && membership.isActive) {
+        if (orgContextCache.size > MAX_ORG_CACHE_SIZE) {
+          orgContextCache.clear();
+        }
+        orgContextCache.set(cacheKey, {
+          role: membership.role,
+          isClientUser: false,
+          expiresAt: now + ORG_CONTEXT_TTL_MS,
+        });
+
         req.organizationId = orgId;
         req.memberRole = membership.role;
         req.isClientUser = false;
@@ -72,18 +142,25 @@ export function resolveOrganization() {
         return;
       }
 
-      // Check if user is a client with access
+      // Check if user is a client with direct indexed lookup
       const clientAccess = await prisma.clientAccess.findFirst({
         where: {
+          organizationId: orgId,
           userId: req.user.userId,
           isActive: true,
-          client: {
-            organizationId: orgId,
-          },
         },
+        select: { id: true },
       });
 
       if (clientAccess) {
+        if (orgContextCache.size > MAX_ORG_CACHE_SIZE) {
+          orgContextCache.clear();
+        }
+        orgContextCache.set(cacheKey, {
+          isClientUser: true,
+          expiresAt: now + ORG_CONTEXT_TTL_MS,
+        });
+
         req.organizationId = orgId;
         req.isClientUser = true;
         next();

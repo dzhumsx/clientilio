@@ -7,11 +7,14 @@
     "start": "node server/dist/index.js",
     "dev": "concurrently \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
     "postinstall": "npm --prefix server run prisma:generate",
-    "db:up": "docker compose up -d",
+    "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
     "db:push": "npm --prefix server run prisma:push",
     "db:seed": "npm --prefix server run prisma:seed",
-    "db:studio": "npm --prefix server run prisma:studio"
+    "db:studio": "npm --prefix server run prisma:studio",
+    "docker:up": "docker compose up -d",
+    "docker:scale": "docker compose up -d --scale server=2",
+    "docker:down": "docker compose down"
   },
   "keywords": ["saas", "agency", "client-portal", "railway"],
   "author": "",

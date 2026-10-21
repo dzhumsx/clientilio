@@ -5,13 +5,12 @@ import type { CreateProjectInput, UpdateProjectInput, ListProjectsInput } from '
 
 export class ProjectService {
   async create(orgId: string, input: CreateProjectInput, userId: string) {
-    // Verify client belongs to this org
+    // Verify client belongs to org and check plan limits sequentially
     const client = await prisma.client.findFirst({
       where: { id: input.clientId, organizationId: orgId, status: 'ACTIVE' },
+      select: { id: true },
     });
-    if (!client) throw new NotFoundError('Client');
 
-    // Check plan limit
     const org = await prisma.organization.findUnique({
       where: { id: orgId },
       select: {
@@ -19,6 +18,8 @@ export class ProjectService {
         _count: { select: { projects: { where: { status: { not: 'ARCHIVED' } } } } },
       },
     });
+
+    if (!client) throw new NotFoundError('Client');
     if (!org) throw new NotFoundError('Organization');
 
     const limits = getPlanLimits(org.planId);
@@ -57,19 +58,18 @@ export class ProjectService {
       ];
     }
 
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where,
-        skip: (input.page - 1) * input.limit,
-        take: input.limit,
-        orderBy: { updatedAt: 'desc' },
-        include: {
-          client: { select: { id: true, name: true } },
-          _count: { select: { tasks: true, deliverables: true } },
-        },
-      }),
-      prisma.project.count({ where }),
-    ]);
+    const projects = await prisma.project.findMany({
+      where,
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        client: { select: { id: true, name: true } },
+        _count: { select: { tasks: true, deliverables: true } },
+      },
+    });
+
+    const total = await prisma.project.count({ where });
 
     return {
       projects,
@@ -112,7 +112,10 @@ export class ProjectService {
         startDate: input.startDate !== undefined ? (input.startDate ? new Date(input.startDate) : null) : undefined,
         dueDate: input.dueDate !== undefined ? (input.dueDate ? new Date(input.dueDate) : null) : undefined,
       },
-      include: { client: { select: { id: true, name: true } } },
+      include: {
+        client: { select: { id: true, name: true } },
+        _count: { select: { tasks: true, deliverables: true } },
+      },
     });
   }
 
@@ -121,11 +124,14 @@ export class ProjectService {
    */
   async listForClientUser(orgId: string, userId: string) {
     const clientAccesses = await prisma.clientAccess.findMany({
-      where: { userId, isActive: true, client: { organizationId: orgId } },
+      where: { userId, organizationId: orgId, isActive: true },
       select: { clientId: true },
     });
 
     const clientIds = clientAccesses.map((ca) => ca.clientId);
+    if (clientIds.length === 0) {
+      return [];
+    }
 
     const projects = await prisma.project.findMany({
       where: {

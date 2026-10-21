@@ -13,6 +13,7 @@ import {
   FileCheck
 } from 'lucide-react';
 import { api } from '../services/api';
+import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { Deliverable, Project } from '../types';
 import { Modal } from '../components/Modal';
@@ -76,17 +77,24 @@ export const ClientPortalPage: React.FC = () => {
         }
       );
 
+      const updatedStatus = decision === 'APPROVED' ? 'APPROVED' : 'CHANGES_REQUESTED';
+      setDeliverables((prev) =>
+        prev.map((d) => (d.id === selectedDeliverable.id ? { ...d, status: updatedStatus } : d))
+      );
+
       setModalOpen(false);
       setSelectedDeliverable(null);
       setComment('');
-      setSuccessMessage(
+      const msg =
         decision === 'APPROVED'
           ? '🎉 Entregável aprovado com sucesso! A equipe da agência foi notificada.'
-          : '📝 Ajustes enviados com sucesso! A equipe da agência iniciará as alterações.'
-      );
+          : '📝 Ajustes enviados com sucesso! A equipe da agência iniciará as alterações.';
+      setSuccessMessage(msg);
+      toast.success(msg);
       fetchPortalData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to submit decision:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao registrar decisão');
     } finally {
       setSubmitting(false);
     }

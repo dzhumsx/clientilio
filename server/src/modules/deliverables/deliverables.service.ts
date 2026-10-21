@@ -119,6 +119,18 @@ export class DeliverableService {
     return prisma.deliverable.update({
       where: { id: deliverableId },
       data: input,
+      include: {
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            approvals: {
+              include: { actor: { select: { id: true, name: true, email: true } } },
+            },
+            file: true,
+          },
+        },
+        project: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -154,6 +166,11 @@ export class DeliverableService {
   async submitForReview(orgId: string, deliverableId: string) {
     const deliverable = await prisma.deliverable.findFirst({
       where: { id: deliverableId, organizationId: orgId },
+      select: {
+        id: true,
+        status: true,
+        _count: { select: { versions: true } },
+      },
     });
     if (!deliverable) throw new NotFoundError('Deliverable');
 
@@ -161,41 +178,45 @@ export class DeliverableService {
       throw new AppError('Deliverable can only be submitted from draft or changes_requested status', 400);
     }
 
-    // Must have at least one version
-    const versionCount = await prisma.deliverableVersion.count({
-      where: { deliverableId },
-    });
-    if (versionCount === 0) {
+    if (deliverable._count.versions === 0) {
       throw new AppError('Deliverable must have at least one version before submitting', 400);
     }
 
     return prisma.deliverable.update({
       where: { id: deliverableId },
       data: { status: 'IN_REVIEW' },
+      include: {
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            approvals: {
+              include: { actor: { select: { id: true, name: true, email: true } } },
+            },
+            file: true,
+          },
+        },
+        project: { select: { id: true, name: true } },
+      },
     });
   }
 
   async submitApproval(orgId: string, deliverableId: string, versionId: string, input: SubmitApprovalInput, userId: string) {
-    const deliverable = await prisma.deliverable.findFirst({
-      where: { id: deliverableId, organizationId: orgId },
+    // Single consolidated query verifying deliverable status, version existence, and duplicate check
+    const version = await prisma.deliverableVersion.findFirst({
+      where: { id: versionId, deliverableId, organizationId: orgId },
+      include: {
+        deliverable: { select: { status: true } },
+        approvals: { where: { actorId: userId }, select: { id: true }, take: 1 },
+      },
     });
-    if (!deliverable) throw new NotFoundError('Deliverable');
 
-    if (deliverable.status !== 'IN_REVIEW') {
+    if (!version || !version.deliverable) throw new NotFoundError('Deliverable or Version');
+
+    if (version.deliverable.status !== 'IN_REVIEW') {
       throw new AppError('Deliverable must be in review to approve', 400);
     }
 
-    // Verify version belongs to this deliverable
-    const version = await prisma.deliverableVersion.findFirst({
-      where: { id: versionId, deliverableId },
-    });
-    if (!version) throw new NotFoundError('Version');
-
-    // Check for duplicate approval
-    const existingApproval = await prisma.approval.findFirst({
-      where: { versionId, actorId: userId },
-    });
-    if (existingApproval) {
+    if (version.approvals.length > 0) {
       throw new AppError('You have already submitted a decision for this version', 409);
     }
 

@@ -1,4 +1,4 @@
-export type PlanId = 'free' | 'pro' | 'business' | 'agency';
+export type PlanId = 'free' | 'pro' | 'business' | 'agency' | 'agency_pro';
 
 // Plan definitions — centralized, not hardcoded in business logic
 export interface PlanDefinition {
@@ -100,12 +100,33 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       reports: 'advanced',
     },
   },
+  agency_pro: {
+    id: 'agency_pro',
+    name: 'Agency Pro',
+    priceUsd: 40,
+    priceBRL: 239,
+    limits: {
+      maxActiveClients: 100,
+      maxActiveProjects: 500,
+      maxTeamMembers: 50,
+      maxStorageMb: 20480,
+      whiteLabel: true,
+      customDomain: true,
+      removeBranding: true,
+      advancedPermissions: true,
+      templates: 'full',
+      automations: 'advanced',
+      reports: 'advanced',
+    },
+  },
 };
 
 export function getPlan(planId: string): PlanDefinition | undefined {
-  return PLANS[planId as PlanId];
+  if (planId === 'agency_pro') return PLANS.agency_pro;
+  return PLANS[planId as PlanId] ?? PLANS.agency;
 }
 
 export function getPlanLimits(planId: string): PlanLimits {
-  return PLANS[planId as PlanId]?.limits ?? PLANS.free.limits;
+  if (planId === 'agency_pro' || planId === 'agency') return PLANS.agency.limits;
+  return PLANS[planId as PlanId]?.limits ?? PLANS.agency.limits;
 }

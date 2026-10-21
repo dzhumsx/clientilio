@@ -8,6 +8,8 @@ import fs from 'fs';
 
 import { env } from './config/env';
 import { errorHandler } from './lib/errors';
+import { sanitizeInput } from './middleware/sanitization';
+import { requestLogger } from './lib/logger';
 
 // Route imports
 import authRouter from './modules/auth/auth.routes';
@@ -17,9 +19,16 @@ import projectsRouter from './modules/projects/projects.routes';
 import deliverablesRouter from './modules/deliverables/deliverables.routes';
 import { filesRouter } from './modules/files/files.routes';
 import { billingRouter, stripeWebhookRouter } from './modules/billing/billing.routes';
+import monitoringRouter from './modules/monitoring/monitoring.routes';
 
 export function createApp(): Application {
   const app = express();
+
+  // Trust first proxy (Load Balancer / Reverse Proxy)
+  app.set('trust proxy', 1);
+
+  // Security & Audit Structured Request Logging
+  app.use(requestLogger);
 
   // Security Headers
   app.use(
@@ -48,7 +57,7 @@ export function createApp(): Application {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-organization-id', 'x-cookie-consent'],
     })
   );
 
@@ -59,6 +68,7 @@ export function createApp(): Application {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
+  app.use(sanitizeInput);
 
   // Rate Limiting (General API)
   const apiLimiter = rateLimit({
@@ -78,7 +88,7 @@ export function createApp(): Application {
   // Stricter limiter for Auth endpoints
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 50, // 50 attempts per 15 minutes
+    max: env.NODE_ENV === 'development' ? 500 : 50,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -118,6 +128,7 @@ export function createApp(): Application {
   app.use('/api', deliverablesRouter);
   app.use('/api/files', filesRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/monitoring', monitoringRouter);
 
   // Static Frontend Serving (Production / Railway Deployment)
   const clientDist = path.resolve(__dirname, '../../client/dist');

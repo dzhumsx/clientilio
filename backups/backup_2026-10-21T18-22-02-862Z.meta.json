@@ -1,0 +1,14 @@
+{
+  "id": "backup_2026-10-21T18-22-02-862Z",
+  "timestamp": "2026-10-21T18:22:02.950Z",
+  "fileName": "backup_2026-10-21T18-22-02-862Z.json.gz",
+  "sha256": "09b625fed0d90a676671818aa882d22daf0d112c5c2811b9883b4bbc1843cd4e",
+  "sizeBytes": 186,
+  "tables": {
+    "users": 0,
+    "organizations": 0,
+    "clients": 0,
+    "projects": 0,
+    "deliverables": 0
+  }
+}

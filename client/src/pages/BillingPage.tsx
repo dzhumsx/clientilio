@@ -265,7 +265,7 @@ export const BillingPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ background: 'rgba(0, 0, 0, 0.25)', padding: '1rem', borderRadius: 'var(--radius-md)', display: 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem', marginBottom: '0.4rem' }}>
                   <span>Armazenamento</span>
                   <strong>{billing.limits.maxStorageMb} MB</strong>

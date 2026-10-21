@@ -1,4 +1,55 @@
 services:
+  # NGINX Load Balancer & Reverse Proxy
+  loadbalancer:
+    image: nginx:alpine
+    container_name: clientilio-loadbalancer
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - server
+      - client
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/lb-health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Backend Node.js / Express API Cluster
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/portal_clientes?schema=public
+      - JWT_ACCESS_SECRET=prod-access-secret-change-in-production-abc123def456ghi789jkl012mno345pqr678
+      - JWT_REFRESH_SECRET=prod-refresh-secret-change-in-production-stu901vwx234yza567bcd890efg123hij456
+      - JWT_ACCESS_EXPIRY=6h
+      - JWT_REFRESH_EXPIRY=7d
+      - APP_URL=http://localhost
+      - API_URL=http://localhost/api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: always
+
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: clientilio-postgres

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Briefcase, Calendar, DollarSign, FolderKanban, CheckCircle2 } from 'lucide-react';
+import { Plus, Briefcase, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -7,6 +7,7 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Project, Client } from '../types';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export const ProjectsPage: React.FC = () => {
   const { currentOrg } = useAuth();
@@ -15,14 +16,16 @@ export const ProjectsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
-  // Modal State
+  // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [clientId, setClientId] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [targetEndDate, setTargetEndDate] = useState('');
   const [budget, setBudget] = useState('');
+  const [status, setStatus] = useState<Project['status']>('PLANNING');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,33 +54,81 @@ export const ProjectsPage: React.FC = () => {
     fetchData();
   }, [currentOrg]);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    if (clients.length === 0) {
+      alert('Cadastre um cliente antes de criar um projeto.');
+      return;
+    }
+    setEditingProject(null);
+    setClientId(clients[0]?.id || '');
+    setName('');
+    setDescription('');
+    setCategory('');
+    setTargetEndDate('');
+    setBudget('');
+    setStatus('PLANNING');
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (p: Project) => {
+    setEditingProject(p);
+    setClientId(p.clientId);
+    setName(p.name);
+    setDescription(p.description || '');
+    setCategory(p.category || '');
+    setTargetEndDate(p.targetEndDate ? p.targetEndDate.split('T')[0] : '');
+    setBudget(p.budget ? String(p.budget) : '');
+    setStatus(p.status);
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
 
     try {
-      await api.post('/projects', {
-        clientId,
-        name,
-        description: description || undefined,
-        category: category || undefined,
-        targetEndDate: targetEndDate ? new Date(targetEndDate).toISOString() : undefined,
-        budget: budget ? parseFloat(budget) : undefined,
-      });
+      if (editingProject) {
+        // Query de update do projeto
+        const { data: updatedProject } = await api.put(`/projects/${editingProject.id}`, {
+          name,
+          description: description || undefined,
+          category: category || undefined,
+          status,
+          targetEndDate: targetEndDate ? new Date(targetEndDate).toISOString() : undefined,
+          budget: budget ? parseFloat(budget) : undefined,
+        });
 
-      setIsModalOpen(false);
-      setName('');
-      setDescription('');
-      setCategory('');
-      setTargetEndDate('');
-      setBudget('');
+        // Atualiza imediatamente a exibição do conteúdo com as mudanças
+        setProjects((prev) =>
+          prev.map((p) => (p.id === editingProject.id ? { ...p, ...updatedProject } : p))
+        );
+        toast.success('Projeto atualizado com sucesso!');
+        setIsModalOpen(false);
+        setEditingProject(null);
+      } else {
+        const { data: newProject } = await api.post('/projects', {
+          clientId,
+          name,
+          description: description || undefined,
+          category: category || undefined,
+          targetEndDate: targetEndDate ? new Date(targetEndDate).toISOString() : undefined,
+          budget: budget ? parseFloat(budget) : undefined,
+        });
+
+        setProjects((prev) => [newProject, ...prev]);
+        toast.success('Projeto criado com sucesso!');
+        setIsModalOpen(false);
+      }
+
       fetchData();
     } catch (err: any) {
-      console.error('Failed to create project:', err);
+      console.error('Failed to save project:', err);
       setFormError(
         err.response?.data?.error?.message ||
-        'Erro ao criar projeto. Verifique os dados ou o limite do plano da agência.'
+        'Erro ao salvar projeto. Verifique os dados ou o limite do plano da agência.'
       );
     } finally {
       setSubmitting(false);
@@ -96,13 +147,7 @@ export const ProjectsPage: React.FC = () => {
         subtitle="Entregas, campanhas e escopos em andamento"
         actions={
           <button
-            onClick={() => {
-              if (clients.length === 0) {
-                alert('Cadastre um cliente antes de criar um projeto.');
-                return;
-              }
-              setIsModalOpen(true);
-            }}
+            onClick={handleOpenCreate}
             className="btn btn-primary btn-sm"
           >
             <Plus size={16} />
@@ -204,10 +249,20 @@ export const ProjectsPage: React.FC = () => {
                     <span>{p._count?.tasks || 0} Tarefas</span>
                   </div>
 
-                  <Link to="/dashboard/deliverables" className="btn btn-secondary btn-sm">
-                    <CheckCircle2 size={14} />
-                    <span>Entregáveis</span>
-                  </Link>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => handleOpenEdit(p)}
+                      className="btn btn-outline btn-sm"
+                      title="Editar projeto"
+                    >
+                      <Edit2 size={14} />
+                      <span>Editar</span>
+                    </button>
+                    <Link to="/dashboard/deliverables" className="btn btn-secondary btn-sm">
+                      <CheckCircle2 size={14} />
+                      <span>Entregáveis</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
@@ -215,31 +270,40 @@ export const ProjectsPage: React.FC = () => {
         )}
       </div>
 
-      {/* New Project Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Novo Projeto">
-        <form onSubmit={handleCreateProject} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Project Modal (Create & Edit) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingProject(null);
+        }}
+        title={editingProject ? 'Editar Projeto' : 'Novo Projeto'}
+      >
+        <form onSubmit={handleSaveProject} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {formError && (
             <div style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)', padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
               {formError}
             </div>
           )}
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
-              Cliente Vinculado *
-            </label>
-            <select
-              required
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-            >
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.company ? `(${c.company})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!editingProject && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+                Cliente Vinculado *
+              </label>
+              <select
+                required
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.company ? `(${c.company})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
@@ -253,6 +317,24 @@ export const ProjectsPage: React.FC = () => {
               placeholder="Ex: Redesign de Identidade Visual 2026"
             />
           </div>
+
+          {editingProject && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+                Status do Projeto
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+              >
+                <option value="PLANNING">Planejamento</option>
+                <option value="IN_PROGRESS">Em Andamento</option>
+                <option value="REVIEW">Em Revisão</option>
+                <option value="COMPLETED">Concluído</option>
+                <option value="ON_HOLD">Pausado</option>
+              </select>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
@@ -303,11 +385,18 @@ export const ProjectsPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary btn-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingProject(null);
+              }}
+              className="btn btn-secondary btn-sm"
+            >
               Cancelar
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : 'Criar Projeto'}
+              {submitting ? 'Salvando...' : editingProject ? 'Salvar Alterações' : 'Criar Projeto'}
             </button>
           </div>
         </form>

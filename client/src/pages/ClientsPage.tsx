@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban } from 'lucide-react';
+import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Client } from '../types';
+import toast from 'react-hot-toast';
 
 export const ClientsPage: React.FC = () => {
   const { currentOrg } = useAuth();
@@ -14,8 +15,9 @@ export const ClientsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ARCHIVED'>('ACTIVE');
 
-  // Modal State
+  // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [email, setEmail] = useState('');
@@ -40,30 +42,67 @@ export const ClientsPage: React.FC = () => {
     fetchClients();
   }, [currentOrg, statusFilter, search]);
 
-  const handleCreateClient = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingClient(null);
+    setName('');
+    setCompany('');
+    setEmail('');
+    setNotes('');
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (c: Client) => {
+    setEditingClient(c);
+    setName(c.name);
+    setCompany(c.company || '');
+    setEmail(c.email || '');
+    setNotes(c.notes || '');
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setSubmitting(true);
 
     try {
-      await api.post('/clients', {
-        name,
-        company: company || undefined,
-        email: email || undefined,
-        notes: notes || undefined,
-      });
+      if (editingClient) {
+        // Query de update do cliente
+        const { data: updatedClient } = await api.put(`/clients/${editingClient.id}`, {
+          name,
+          company: company || undefined,
+          email: email || undefined,
+          notes: notes || undefined,
+        });
 
-      setIsModalOpen(false);
-      setName('');
-      setCompany('');
-      setEmail('');
-      setNotes('');
+        // Atualiza imediatamente a exibição do conteúdo para exibir as mudanças
+        setClients((prev) =>
+          prev.map((c) => (c.id === editingClient.id ? { ...c, ...updatedClient } : c))
+        );
+        toast.success('Cliente atualizado com sucesso!');
+        setIsModalOpen(false);
+        setEditingClient(null);
+      } else {
+        const { data: newClient } = await api.post('/clients', {
+          name,
+          company: company || undefined,
+          email: email || undefined,
+          notes: notes || undefined,
+        });
+
+        setClients((prev) => [newClient, ...prev]);
+        toast.success('Cliente cadastrado com sucesso!');
+        setIsModalOpen(false);
+      }
+
       fetchClients();
     } catch (err: any) {
-      console.error('Failed to create client:', err);
+      console.error('Failed to save client:', err);
       setFormError(
         err.response?.data?.error?.message ||
-        'Erro ao criar cliente. Verifique se o limite do seu plano foi atingido.'
+        'Erro ao salvar cliente. Verifique os dados ou o limite do seu plano.'
       );
     } finally {
       setSubmitting(false);
@@ -72,14 +111,26 @@ export const ClientsPage: React.FC = () => {
 
   const handleArchiveToggle = async (client: Client) => {
     try {
-      if (client.status === 'ACTIVE') {
+      const isArchiving = client.status === 'ACTIVE';
+      const nextStatus = isArchiving ? 'ARCHIVED' : 'ACTIVE';
+
+      // Atualiza imediatamente a exibição
+      setClients((prev) =>
+        prev.map((c) => (c.id === client.id ? { ...c, status: nextStatus } : c))
+      );
+
+      if (isArchiving) {
         await api.post(`/clients/${client.id}/archive`);
+        toast.success('Cliente arquivado com sucesso!');
       } else {
         await api.post(`/clients/${client.id}/reactivate`);
+        toast.success('Cliente reativado com sucesso!');
       }
       fetchClients();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to toggle client archive status:', err);
+      toast.error(err.response?.data?.error?.message || 'Erro ao alterar status do cliente');
+      fetchClients();
     }
   };
 
@@ -89,7 +140,7 @@ export const ClientsPage: React.FC = () => {
         title="Gestão de Clientes"
         subtitle="Contas e empresas atendidas pela sua agência"
         actions={
-          <button onClick={() => setIsModalOpen(true)} className="btn btn-primary btn-sm">
+          <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
             <Plus size={16} />
             <span>Novo Cliente</span>
           </button>
@@ -185,6 +236,14 @@ export const ClientsPage: React.FC = () => {
 
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
+                      onClick={() => handleOpenEdit(c)}
+                      className="btn btn-outline btn-sm"
+                      title="Editar cliente"
+                    >
+                      <Edit2 size={14} />
+                      <span>Editar</span>
+                    </button>
+                    <button
                       onClick={() => handleArchiveToggle(c)}
                       className="btn btn-outline btn-sm"
                       title={c.status === 'ACTIVE' ? 'Arquivar cliente' : 'Reativar cliente'}
@@ -200,9 +259,16 @@ export const ClientsPage: React.FC = () => {
         )}
       </div>
 
-      {/* New Client Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Novo Cliente">
-        <form onSubmit={handleCreateClient} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Client Modal (Create & Edit) */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingClient(null);
+        }}
+        title={editingClient ? 'Editar Cliente' : 'Novo Cliente'}
+      >
+        <form onSubmit={handleSaveClient} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {formError && (
             <div style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)', padding: '0.75rem', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
               {formError}
@@ -259,11 +325,18 @@ export const ClientsPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-secondary btn-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingClient(null);
+              }}
+              className="btn btn-secondary btn-sm"
+            >
               Cancelar
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : 'Cadastrar Cliente'}
+              {submitting ? 'Salvando...' : editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
             </button>
           </div>
         </form>

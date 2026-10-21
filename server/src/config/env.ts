@@ -8,7 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
-  JWT_ACCESS_EXPIRY: z.string().default('15m'),
+  JWT_ACCESS_EXPIRY: z.string().default('6h'),
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),

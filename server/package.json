@@ -16,7 +16,13 @@
     "db:down": "docker compose -f ../docker-compose.yml down",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "backup:create": "tsx scripts/backup.ts",
+    "backup:restore": "tsx scripts/backup.ts restore",
+    "migration:run": "tsx scripts/migrate.ts up",
+    "migration:rollback": "tsx scripts/migrate.ts down",
+    "audit:check": "tsx scripts/audit-dependencies.ts",
+    "dr:drill": "tsx scripts/disaster-recovery.ts"
   },
   "keywords": [],
   "author": "",

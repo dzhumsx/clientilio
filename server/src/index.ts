@@ -22,6 +22,12 @@ async function main() {
       exec('npx tsx prisma/seed.ts', (err, stdout) => {
         if (!err && stdout) console.log(stdout.trim());
       });
+    } else {
+      // Ensure existing test/demo organizations have the Agency plan
+      await prisma.organization.updateMany({
+        where: { planId: { not: 'agency' } },
+        data: { planId: 'agency' },
+      }).catch(() => {});
     }
   } catch (err: any) {
     console.warn('⚠️ Warning: Database connection check failed. Ensure PostgreSQL is running. Error:', err.message);

@@ -126,7 +126,9 @@ model Membership {
 
   @@unique([organizationId, userId])
   @@index([organizationId])
+  @@index([organizationId, isActive])
   @@index([userId])
+  @@index([userId, isActive])
   @@map("memberships")
 }
 
@@ -189,6 +191,8 @@ model Client {
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, name])
   @@map("clients")
 }
 
@@ -208,7 +212,9 @@ model ClientAccess {
 
   @@unique([clientId, userId])
   @@index([userId])
+  @@index([userId, isActive])
   @@index([clientId])
+  @@index([organizationId, userId])
   @@map("client_accesses")
 }
 
@@ -246,8 +252,11 @@ model Project {
   members      ProjectMember[]
 
   @@index([organizationId])
-  @@index([clientId])
   @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, clientId])
+  @@index([clientId, status])
   @@map("projects")
 }
 
@@ -300,8 +309,12 @@ model Task {
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
   @@index([projectId])
   @@index([projectId, status])
+  @@index([projectId, createdAt])
+  @@index([assigneeId, status])
   @@map("tasks")
 }
 
@@ -349,6 +362,9 @@ model Deliverable {
   approvals    Approval[]
 
   @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, projectId])
   @@index([projectId])
   @@index([projectId, status])
   @@map("deliverables")
@@ -399,6 +415,7 @@ model Approval {
 
   @@index([deliverableId])
   @@index([versionId])
+  @@index([versionId, actorId])
   @@map("approvals")
 }
 
@@ -450,6 +467,7 @@ model Comment {
 
   @@index([organizationId])
   @@index([resourceType, resourceId])
+  @@index([resourceType, resourceId, createdAt])
   @@map("comments")
 }
 
@@ -493,7 +511,9 @@ model Notification {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt])
+  @@index([userId, createdAt])
   @@index([organizationId])
+  @@index([organizationId, createdAt])
   @@map("notifications")
 }
 
@@ -503,6 +523,7 @@ model NotificationPreference {
   eventType    String
   inAppEnabled Boolean @default(true)
   emailEnabled Boolean @default(true)
+  createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -542,6 +563,7 @@ model Subscription {
 
   @@index([providerCustomerId])
   @@index([providerSubscriptionId])
+  @@index([status])
   @@map("subscriptions")
 }
 

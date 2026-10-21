@@ -29,18 +29,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setUser(null);
-      setOrganizations([]);
-      setCurrentOrgState(null);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const { data } = await api.get('/auth/me');
-      setUser(data.user);
+      setUser(data.user || data);
       const orgs: Organization[] = data.organizations || [];
       setOrganizations(orgs);
 
@@ -53,7 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('currentOrganizationId', orgs[0].id);
       }
     } catch (err) {
-      console.error('Failed to load profile:', err);
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       setUser(null);
@@ -113,9 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       const refreshToken = localStorage.getItem('refreshToken');
-      if (refreshToken) {
-        await api.post('/auth/logout', { refreshToken });
-      }
+      await api.post('/auth/logout', { refreshToken: refreshToken || undefined });
     } catch (e) {
       // Ignore network errors on logout
     } finally {
