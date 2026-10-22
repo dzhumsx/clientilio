@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw, Search, X } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -15,6 +15,7 @@ export const ProjectsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [search, setSearch] = useState('');
 
   // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,13 +30,14 @@ export const ProjectsPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchData = async (filter: string = statusFilter) => {
+  const fetchData = async (filter: string = statusFilter, query: string = search) => {
     if (!currentOrg) return;
     setLoading(true);
     try {
       // Sequential queries to avoid PGlite lock collision
       const isArchived = filter === 'ARCHIVED';
-      const projRes = await api.get(`/projects?status=${isArchived ? 'ARCHIVED' : 'ALL'}`);
+      const searchParam = query.trim() ? `&search=${encodeURIComponent(query.trim())}` : '';
+      const projRes = await api.get(`/projects?status=${isArchived ? 'ARCHIVED' : 'ALL'}${searchParam}`);
       setProjects(projRes.data.projects || projRes.data.data || []);
 
       const clientRes = await api.get('/clients?status=ACTIVE');
@@ -52,8 +54,8 @@ export const ProjectsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData(statusFilter);
-  }, [currentOrg, statusFilter]);
+    fetchData(statusFilter, search);
+  }, [currentOrg, statusFilter, search]);
 
   const handleDeleteProject = async (proj: Project) => {
     const confirmed = window.confirm(
@@ -175,8 +177,16 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const filteredProjects = projects.filter((p) => {
-    if (statusFilter === 'ALL' || statusFilter === 'ARCHIVED') return true;
-    return p.status === statusFilter;
+    if (statusFilter !== 'ALL' && statusFilter !== 'ARCHIVED' && p.status !== statusFilter) {
+      return false;
+    }
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const nameMatch = p.name?.toLowerCase().includes(q);
+    const descMatch = p.description?.toLowerCase().includes(q);
+    const clientMatch = p.client?.name?.toLowerCase().includes(q);
+    const catMatch = p.category?.toLowerCase().includes(q);
+    return Boolean(nameMatch || descMatch || clientMatch || catMatch);
   });
 
   const filterTabs = [
@@ -206,7 +216,7 @@ export const ProjectsPage: React.FC = () => {
       />
 
       <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Segmented Filter Bar */}
+        {/* Segmented Filter Bar & Search Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <div
             style={{
@@ -262,16 +272,64 @@ export const ProjectsPage: React.FC = () => {
             })}
           </div>
 
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.6875rem',
-              color: 'var(--text-tertiary)',
-              letterSpacing: '0.05em',
-            }}
-          >
-            TOTAL: {filteredProjects.length} {filteredProjects.length === 1 ? 'PROJETO' : 'PROJETOS'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', width: '280px' }}>
+              <input
+                type="text"
+                placeholder="Buscar por nome, cliente ou tag..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: '2.1rem', paddingRight: search ? '2rem' : '0.75rem', height: '34px', fontSize: '13px' }}
+              />
+              <Search
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                  pointerEvents: 'none',
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.6rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Limpar pesquisa"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem',
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.05em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              TOTAL: {filteredProjects.length} {filteredProjects.length === 1 ? 'PROJETO' : 'PROJETOS'}
+            </span>
+          </div>
         </div>
 
         {/* Projects Grid */}
@@ -304,23 +362,31 @@ export const ProjectsPage: React.FC = () => {
                 color: 'var(--text-tertiary)',
               }}
             >
-              <FolderKanban size={20} />
+              {search ? <Search size={20} /> : <FolderKanban size={20} />}
             </div>
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-              Nenhum projeto encontrado
+              {search ? `Nenhum projeto encontrado para "${search}"` : 'Nenhum projeto encontrado'}
             </h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', maxWidth: '360px' }}>
-              {statusFilter !== 'ALL'
+              {search
+                ? 'Tente buscar com outro nome de campanha, cliente ou categoria, ou limpe o filtro.'
+                : statusFilter !== 'ALL'
                 ? 'Nenhum projeto com este status. Tente outro filtro ou crie uma nova demanda.'
                 : 'Crie seu primeiro projeto para gerenciar prazos, tarefas e entregáveis com seus clientes.'}
             </p>
-            <button
-              onClick={handleOpenCreate}
-              className="btn btn-primary btn-sm"
-            >
-              <Plus size={14} />
-              <span>Criar Projeto</span>
-            </button>
+            {search ? (
+              <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
+                Limpar busca
+              </button>
+            ) : (
+              <button
+                onClick={handleOpenCreate}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus size={14} />
+                <span>Criar Projeto</span>
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>

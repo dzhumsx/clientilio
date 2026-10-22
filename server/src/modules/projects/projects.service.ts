@@ -49,6 +49,8 @@ export class ProjectService {
       where.OR = [
         { name: { contains: input.search, mode: 'insensitive' } },
         { description: { contains: input.search, mode: 'insensitive' } },
+        { client: { name: { contains: input.search, mode: 'insensitive' } } },
+        { category: { contains: input.search, mode: 'insensitive' } },
       ];
     }
 
@@ -79,7 +81,7 @@ export class ProjectService {
         client: { select: { id: true, name: true } },
         tasks: { orderBy: { createdAt: 'desc' }, take: 50 },
         deliverables: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { updatedAt: 'desc' },
           include: {
             versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
             _count: { select: { approvals: true } },

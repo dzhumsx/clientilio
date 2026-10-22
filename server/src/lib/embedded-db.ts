@@ -66,24 +66,32 @@ export async function ensureDatabaseRunning(): Promise<boolean> {
     return false;
   }
 
-  try {
-    console.log(`🚀 Iniciando PostgreSQL local embutido (PGlite) na porta ${port}...`);
-    const dataDir = path.join(process.cwd(), '.pgdata');
-    const db = await PGlite.create({ dataDir });
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      console.log(`🚀 Iniciando PostgreSQL local embutido (PGlite) na porta ${port}...`);
+      const dataDir = path.join(process.cwd(), '.pgdata');
+      const db = await PGlite.create({ dataDir });
 
-    globalForDb.pgliteServerInstance = new PGLiteSocketServer({
-      db,
-      port,
-      host: '127.0.0.1',
-    });
+      globalForDb.pgliteServerInstance = new PGLiteSocketServer({
+        db,
+        port,
+        host: '127.0.0.1',
+      });
 
-    await globalForDb.pgliteServerInstance.start();
-    console.log(`✅ Banco de dados PostgreSQL local pronto e persistido em .pgdata na porta ${port}!`);
-    return true;
-  } catch (err: any) {
-    console.warn(`⚠️ Não foi possível iniciar o PGlite embutido na porta ${port}:`, err.message);
-    return false;
+      await globalForDb.pgliteServerInstance.start();
+      console.log(`✅ Banco de dados PostgreSQL local pronto e persistido em .pgdata na porta ${port}!`);
+      return true;
+    } catch (err: any) {
+      if (err.message?.includes('EADDRINUSE') && attempt < 3) {
+        console.log(`⏳ Porta ${port} em liberação, aguardando (tentativa ${attempt}/3)...`);
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      console.warn(`⚠️ Não foi possível iniciar o PGlite embutido na porta ${port}:`, err.message);
+      return false;
+    }
   }
+  return false;
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2, Trash2, X } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -169,15 +169,52 @@ export const ClientsPage: React.FC = () => {
       <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1280px' }}>
         {/* Filters & Search Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', width: '280px' }}>
-            <input
-              type="text"
-              placeholder="Buscar por nome ou empresa..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: '2.2rem', fontSize: '13px' }}
-            />
-            <Search size={14} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', width: '280px' }}>
+              <input
+                type="text"
+                placeholder="Buscar por nome ou empresa..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: '2.2rem', paddingRight: search ? '2rem' : '0.75rem', fontSize: '13px', height: '34px' }}
+              />
+              <Search size={14} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.6rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Limpar busca"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem',
+                color: 'var(--text-tertiary)',
+                letterSpacing: '0.05em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              TOTAL: {clients.length} {clients.length === 1 ? 'CLIENTE' : 'CLIENTES'} {search ? 'ENCONTRADOS' : ''}
+            </span>
           </div>
 
           <div
@@ -232,15 +269,21 @@ export const ClientsPage: React.FC = () => {
           <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-tertiary)' }}>
             <Building2 size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
             <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Nenhum cliente encontrado
+              {search ? `Nenhum cliente encontrado para "${search}"` : 'Nenhum cliente encontrado'}
             </h3>
             <p style={{ fontSize: '13px', marginBottom: '1.25rem', color: 'var(--text-secondary)' }}>
-              {search ? 'Tente ajustar os termos de busca.' : 'Cadastre seu primeiro cliente para gerenciar campanhas e entregáveis.'}
+              {search ? 'Tente ajustar os termos de busca ou limpe o filtro.' : 'Cadastre seu primeiro cliente para gerenciar campanhas e entregáveis.'}
             </p>
-            <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
-              <Plus size={14} />
-              <span>Adicionar Cliente</span>
-            </button>
+            {search ? (
+              <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
+                Limpar busca
+              </button>
+            ) : (
+              <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
+                <Plus size={14} />
+                <span>Adicionar Cliente</span>
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>

@@ -97,6 +97,10 @@ export interface Approval {
     name: string;
     email: string;
   };
+  version?: {
+    id?: string;
+    versionNumber: number;
+  };
 }
 
 export interface Deliverable {

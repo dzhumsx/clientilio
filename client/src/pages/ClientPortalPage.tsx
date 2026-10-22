@@ -10,12 +10,14 @@ import {
   FileCheck,
   Sun,
   Moon,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { api } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Deliverable, Project } from '../types';
+import { Deliverable, Project, DeliverableVersion } from '../types';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { LogoIcon } from '../components/Logo';
@@ -34,6 +36,11 @@ export const ClientPortalPage: React.FC = () => {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const getLatestVersion = (item?: Deliverable | null): DeliverableVersion | null => {
+    if (!item?.versions || item.versions.length === 0) return null;
+    return [...item.versions].sort((a, b) => b.versionNumber - a.versionNumber)[0];
+  };
 
   const fetchPortalData = async () => {
     setLoading(true);
@@ -59,10 +66,7 @@ export const ClientPortalPage: React.FC = () => {
     e.preventDefault();
     if (!selectedDeliverable) return;
 
-    const latestVersion =
-      selectedDeliverable.versions && selectedDeliverable.versions.length > 0
-        ? selectedDeliverable.versions[selectedDeliverable.versions.length - 1]
-        : null;
+    const latestVersion = getLatestVersion(selectedDeliverable);
 
     if (!latestVersion) {
       toast.error('Não há versão cadastrada para este entregável.');
@@ -90,7 +94,7 @@ export const ClientPortalPage: React.FC = () => {
       const msg =
         decision === 'APPROVED'
           ? 'Entregável aprovado com sucesso. A agência foi notificada.'
-          : 'Solicitação de ajustes enviada com sucesso.';
+          : 'Solicitação de ajustes enviada com sucesso para a agência.';
       setSuccessMessage(msg);
       toast.success(msg);
       fetchPortalData();
@@ -103,8 +107,9 @@ export const ClientPortalPage: React.FC = () => {
   };
 
   const pendingItems = deliverables.filter(
-    (d) => d.status === 'READY_FOR_REVIEW' || d.status === 'IN_REVIEW' || d.status === 'DRAFT'
+    (d) => d.status === 'IN_REVIEW' || d.status === 'READY_FOR_REVIEW'
   );
+  const inAdjustmentItems = deliverables.filter((d) => d.status === 'CHANGES_REQUESTED');
   const approvedItems = deliverables.filter((d) => d.status === 'APPROVED');
 
   return (
@@ -235,7 +240,23 @@ export const ClientPortalPage: React.FC = () => {
                 {pendingItems.length}
               </div>
               <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                AGUARDANDO AVALIAÇÃO
+                AGUARDANDO SUA REVISÃO
+              </span>
+            </div>
+            <div style={{ borderLeft: '1px solid var(--border-hairline)', paddingLeft: '1.5rem', textAlign: 'center' }}>
+              <div
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '-0.04em',
+                  color: inAdjustmentItems.length > 0 ? '#ef4444' : 'var(--text-primary)',
+                }}
+              >
+                {inAdjustmentItems.length}
+              </div>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                EM AJUSTE PELA AGÊNCIA
               </span>
             </div>
             <div style={{ borderLeft: '1px solid var(--border-hairline)', paddingLeft: '1.5rem', textAlign: 'center' }}>
@@ -282,7 +303,7 @@ export const ClientPortalPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <Clock size={16} style={{ color: 'var(--text-tertiary)' }} />
             <h2 style={{ fontSize: '1.125rem', fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
-              Entregas para sua Revisão
+              Entregas para sua Revisão & Aprovação
             </h2>
           </div>
 
@@ -317,16 +338,17 @@ export const ClientPortalPage: React.FC = () => {
                 <FileCheck size={18} />
               </div>
               <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', margin: '0 0 0.25rem 0' }}>
-                Nenhum item pendente de aprovação
+                Nenhum item pendente de aprovação no momento
               </p>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, maxWidth: '360px' }}>
-                Você está em dia. Assim que a agência disponibilizar uma nova versão, ela será listada aqui.
+                Assim que a agência enviar um novo entregável ou uma nova versão ajustada, ela ficará disponível aqui.
               </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {pendingItems.map((item) => {
-                const latestVersion = item.versions && item.versions.length > 0 ? item.versions[item.versions.length - 1] : null;
+                const latestVersion = getLatestVersion(item);
+                const isUpdatedVersion = (latestVersion?.versionNumber || 1) > 1;
 
                 return (
                   <div
@@ -337,6 +359,7 @@ export const ClientPortalPage: React.FC = () => {
                       flexDirection: 'column',
                       gap: '1rem',
                       padding: '1.25rem',
+                      border: isUpdatedVersion ? '1px solid rgba(16, 185, 129, 0.4)' : undefined,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -357,8 +380,29 @@ export const ClientPortalPage: React.FC = () => {
                               color: 'var(--text-secondary)',
                             }}
                           >
-                            v{item.currentVersionNumber}
+                            v{latestVersion?.versionNumber || item.currentVersionNumber}
                           </span>
+
+                          {isUpdatedVersion && (
+                            <span
+                              style={{
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                background: 'rgba(16, 185, 129, 0.12)',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                color: 'var(--accent-primary)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <RefreshCw size={11} />
+                              <span>NOVA VERSÃO ENVIADA</span>
+                            </span>
+                          )}
                         </div>
                         {item.description && (
                           <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
@@ -406,7 +450,7 @@ export const ClientPortalPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {latestVersion && (
+                    {latestVersion?.notes && (
                       <div
                         style={{
                           background: 'var(--bg-subtle)',
@@ -417,10 +461,10 @@ export const ClientPortalPage: React.FC = () => {
                         }}
                       >
                         <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
-                          NOTAS DA EQUIPE:
+                          {isUpdatedVersion ? 'NOTAS DA ATUALIZAÇÃO DA AGÊNCIA:' : 'NOTAS DA EQUIPE:'}
                         </strong>{' '}
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          {latestVersion.notes || 'Sem comentários adicionais da agência.'}
+                        <span style={{ color: 'var(--text-primary)' }}>
+                          {latestVersion.notes}
                         </span>
                       </div>
                     )}
@@ -430,6 +474,106 @@ export const ClientPortalPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Changes Requested / In Adjustment Section */}
+        {inAdjustmentItems.length > 0 && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <AlertCircle size={16} style={{ color: '#ef4444' }} />
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
+                Ajustes em Andamento pela Agência ({inAdjustmentItems.length})
+              </h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {inAdjustmentItems.map((item) => {
+                const latestVer = getLatestVersion(item);
+                const changeApproval = item.approvals?.find((a) => a.decision === 'CHANGES_REQUESTED');
+
+                return (
+                  <div
+                    key={item.id}
+                    className="card"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.875rem',
+                      padding: '1.25rem',
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      background: 'rgba(239, 68, 68, 0.02)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 600, letterSpacing: '-0.02em', margin: 0 }}>
+                            {item.title}
+                          </h3>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.6875rem',
+                              fontWeight: 600,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--border-hairline)',
+                              background: 'var(--bg-subtle)',
+                              color: 'var(--text-secondary)',
+                            }}
+                          >
+                            v{latestVer?.versionNumber || item.currentVersionNumber}
+                          </span>
+                          <StatusBadge status="CHANGES_REQUESTED" />
+                        </div>
+                        {item.description && (
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {latestVer?.externalUrl && (
+                        <a
+                          href={latestVer.externalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-outline btn-sm"
+                          title="Visualizar versão anterior"
+                        >
+                          <ExternalLink size={13} />
+                          <span>Ver Versão Anterior</span>
+                        </a>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.06)',
+                        border: '1px solid rgba(239, 68, 68, 0.15)',
+                        borderRadius: '6px',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.8125rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 600, fontSize: '0.75rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                        <Clock size={13} />
+                        <span>Aguardando envio da nova versão pela equipe da agência</span>
+                      </div>
+                      {changeApproval?.comment && (
+                        <p style={{ margin: '0.25rem 0', fontStyle: 'italic', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                          Sua solicitação: "{changeApproval.comment}"
+                        </p>
+                      )}
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', display: 'block', marginTop: '0.25rem' }}>
+                        Assim que a agência enviar o ajuste, este entregável reaparecerá no topo para sua aprovação final.
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Approved Deliverables Section */}
         {approvedItems.length > 0 && (
@@ -453,13 +597,27 @@ export const ClientPortalPage: React.FC = () => {
                     padding: '1rem',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                     <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, margin: 0 }}>{item.title}</h3>
                     <StatusBadge status="APPROVED" />
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', margin: 0 }}>
-                    VERSÃO APROVADA: v{item.currentVersionNumber}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)', margin: 0 }}>
+                      VERSÃO APROVADA: v{getLatestVersion(item)?.versionNumber || item.currentVersionNumber || 1}
+                    </p>
+                    {getLatestVersion(item)?.externalUrl && (
+                      <a
+                        href={getLatestVersion(item)!.externalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-outline btn-sm"
+                        style={{ height: '24px', padding: '0 0.5rem', fontSize: '0.6875rem' }}
+                      >
+                        <ExternalLink size={11} />
+                        <span>Abrir</span>
+                      </a>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

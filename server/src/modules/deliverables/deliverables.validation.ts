@@ -35,9 +35,11 @@ export const updateDeliverableSchema = z.object({
 });
 
 export const createVersionSchema = z.object({
+  title: z.string().max(300).optional(),
   notes: z.string().max(2000).optional(),
-  externalUrl: z.string().url().optional(),
+  externalUrl: z.string().url().optional().or(z.literal('')),
   fileId: z.string().uuid().optional(),
+  submitForReview: z.boolean().optional(),
 });
 
 export const submitApprovalSchema = z.object({

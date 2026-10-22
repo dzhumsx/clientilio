@@ -59,12 +59,13 @@ router.put('/tasks/:id', ...orgMiddleware, requireTeamMember, async (req: Reques
 
 // ===================== DELIVERABLES =====================
 
-// GET /api/deliverables?projectId=xxx&status=ACTIVE|ARCHIVED
+// GET /api/deliverables?projectId=xxx&status=ACTIVE|ARCHIVED&search=xxx
 router.get('/deliverables', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projectId = req.query.projectId as string | undefined;
     const status = req.query.status as string | undefined;
-    const deliverables = await deliverableService.listByProject(req.organizationId!, projectId, status);
+    const search = req.query.search as string | undefined;
+    const deliverables = await deliverableService.listByProject(req.organizationId!, projectId, status, search);
     res.json(deliverables);
   } catch (error) {
     next(error);

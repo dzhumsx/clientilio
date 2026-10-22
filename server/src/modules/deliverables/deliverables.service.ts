@@ -95,7 +95,7 @@ export class DeliverableService {
     });
   }
 
-  async listByProject(orgId: string, projectId?: string, status?: string) {
+  async listByProject(orgId: string, projectId?: string, status?: string, search?: string) {
     const where: any = { organizationId: orgId };
     if (projectId) {
       where.projectId = projectId;
@@ -105,13 +105,38 @@ export class DeliverableService {
     } else {
       where.status = { not: 'ARCHIVED' };
     }
+    if (search && search.trim()) {
+      const s = search.trim();
+      where.OR = [
+        { title: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
+        { versions: { some: { notes: { contains: s, mode: 'insensitive' } } } },
+      ];
+    }
     return prisma.deliverable.findMany({
       where,
       include: {
-        versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
+        versions: {
+          orderBy: { versionNumber: 'desc' },
+          include: {
+            approvals: {
+              include: { actor: { select: { id: true, name: true, email: true } } },
+              orderBy: { createdAt: 'desc' },
+            },
+            file: true,
+          },
+        },
+        approvals: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            actor: { select: { id: true, name: true, email: true } },
+            version: { select: { id: true, versionNumber: true } },
+          },
+        },
+        project: { select: { id: true, name: true, clientId: true } },
         _count: { select: { versions: true, approvals: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       take: 100,
     });
   }
@@ -238,10 +263,24 @@ export class DeliverableService {
         organizationId: orgId,
         deliverableId,
         versionNumber: nextVersionNumber,
-        fileId: input.fileId,
-        externalUrl: input.externalUrl,
-        notes: input.notes,
+        fileId: input.fileId || undefined,
+        externalUrl: input.externalUrl || undefined,
+        notes: input.notes || undefined,
         createdById: userId,
+      },
+      include: {
+        file: true,
+        approvals: true,
+      },
+    });
+
+    // Update parent deliverable updatedAt and transition to IN_REVIEW if requested or resolving changes
+    const shouldSubmit = input.submitForReview || deliverable.status === 'CHANGES_REQUESTED';
+    await prisma.deliverable.update({
+      where: { id: deliverableId },
+      data: {
+        ...(shouldSubmit ? { status: 'IN_REVIEW' } : {}),
+        updatedAt: new Date(),
       },
     });
 
@@ -276,8 +315,16 @@ export class DeliverableService {
           include: {
             approvals: {
               include: { actor: { select: { id: true, name: true, email: true } } },
+              orderBy: { createdAt: 'desc' },
             },
             file: true,
+          },
+        },
+        approvals: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            actor: { select: { id: true, name: true, email: true } },
+            version: { select: { id: true, versionNumber: true } },
           },
         },
         project: { select: { id: true, name: true } },
@@ -314,6 +361,10 @@ export class DeliverableService {
           actorId: userId,
           decision: input.decision,
           comment: input.comment,
+        },
+        include: {
+          actor: { select: { id: true, name: true, email: true } },
+          version: { select: { id: true, versionNumber: true } },
         },
       });
 

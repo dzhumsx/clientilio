@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, CheckCircle2, ExternalLink, FileText, Send, Edit2, Layers, Link2, Trash2, Archive, RefreshCw } from 'lucide-react';
+import { Plus, CheckCircle2, ExternalLink, FileText, Send, Edit2, Layers, Link2, Trash2, Archive, RefreshCw, AlertCircle, Search, Clock, ArrowUpDown, X } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -14,7 +14,23 @@ export const DeliverablesPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ARCHIVED'>('ACTIVE');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const formatRelativeTime = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return 'agora há pouco';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `há ${diffMin} ${diffMin === 1 ? 'min' : 'mins'}`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `há ${diffHour}h`;
+    const diffDays = Math.floor(diffHour / 24);
+    if (diffDays < 7) return `há ${diffDays} ${diffDays === 1 ? 'dia' : 'dias'}`;
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
   // Deliverable Modal (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +49,7 @@ export const DeliverablesPage: React.FC = () => {
   const [versionTitle, setVersionTitle] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
   const [versionNotes, setVersionNotes] = useState('');
+  const [submitDirectly, setSubmitDirectly] = useState(true);
 
   const fetchProjectsAndDeliverables = async () => {
     if (!currentOrg) return;
@@ -45,7 +62,8 @@ export const DeliverablesPage: React.FC = () => {
       const projId = selectedProjectId || (projs.length > 0 ? projs[0].id : '');
       if (projId) {
         setSelectedProjectId(projId);
-        const delivRes = await api.get(`/deliverables?projectId=${projId}&status=${statusFilter}`);
+        const searchParam = search.trim() ? `&search=${encodeURIComponent(search.trim())}` : '';
+        const delivRes = await api.get(`/deliverables?projectId=${projId}&status=${statusFilter}${searchParam}`);
         setDeliverables(delivRes.data || []);
       } else {
         setDeliverables([]);
@@ -59,7 +77,7 @@ export const DeliverablesPage: React.FC = () => {
 
   useEffect(() => {
     fetchProjectsAndDeliverables();
-  }, [currentOrg, selectedProjectId, statusFilter]);
+  }, [currentOrg, selectedProjectId, statusFilter, search]);
 
   const handleDeleteDeliverable = async (deliv: Deliverable) => {
     const confirmed = window.confirm(
@@ -175,18 +193,14 @@ export const DeliverablesPage: React.FC = () => {
         title: versionTitle || undefined,
         externalUrl: externalUrl || undefined,
         notes: versionNotes || undefined,
+        submitForReview: submitDirectly,
       });
 
-      setDeliverables((prev) =>
-        prev.map((d) => {
-          if (d.id === activeDeliverable.id) {
-            const versions = [newVersion, ...(d.versions || [])];
-            return { ...d, versions, currentVersionNumber: newVersion.versionNumber };
-          }
-          return d;
-        })
+      toast.success(
+        submitDirectly
+          ? 'Nova versão enviada ao cliente com sucesso! O cliente já pode avaliar e aprovar no portal.'
+          : 'Nova versão adicionada.'
       );
-      toast.success('Nova versão adicionada.');
 
       setVersionModalOpen(false);
       setActiveDeliverable(null);
@@ -233,7 +247,7 @@ export const DeliverablesPage: React.FC = () => {
       />
 
       <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Project Selector Bar */}
+        {/* Project Selector Bar & Search Toolbar */}
         <div
           style={{
             display: 'flex',
@@ -265,7 +279,7 @@ export const DeliverablesPage: React.FC = () => {
               onChange={(e) => setSelectedProjectId(e.target.value)}
               style={{
                 width: 'auto',
-                minWidth: '280px',
+                minWidth: '260px',
                 height: '34px',
                 fontSize: '0.8125rem',
                 padding: '0 0.75rem',
@@ -277,9 +291,76 @@ export const DeliverablesPage: React.FC = () => {
                 </option>
               ))}
             </select>
+
+            {/* Deliverables Search Bar */}
+            <div style={{ position: 'relative', width: '260px' }}>
+              <input
+                type="text"
+                placeholder="Buscar entregáveis..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: '2.1rem', paddingRight: search ? '2rem' : '0.75rem', height: '34px', fontSize: '13px' }}
+              />
+              <Search
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-tertiary)',
+                  pointerEvents: 'none',
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.6rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    color: 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Limpar pesquisa"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Last modified sort indicator */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-hairline)',
+                background: 'var(--bg-surface)',
+                color: 'var(--accent-primary)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                letterSpacing: '0.04em',
+              }}
+              title="Organizado automaticamente pelo modificado mais recentemente"
+            >
+              <ArrowUpDown size={11} />
+              <span>MODIFICADO POR ÚLTIMO</span>
+            </div>
+
             <div
               style={{
                 display: 'inline-flex',
@@ -330,7 +411,7 @@ export const DeliverablesPage: React.FC = () => {
                 letterSpacing: '0.05em',
               }}
             >
-              {deliverables.length} {deliverables.length === 1 ? 'ITEM' : 'ITENS'} {statusFilter === 'ARCHIVED' ? 'ARQUIVADOS' : 'NESTE PROJETO'}
+              {deliverables.length} {deliverables.length === 1 ? 'ITEM' : 'ITENS'} {search ? 'ENCONTRADOS' : statusFilter === 'ARCHIVED' ? 'ARQUIVADOS' : 'NESTE PROJETO'}
             </span>
           </div>
         </div>
@@ -365,129 +446,231 @@ export const DeliverablesPage: React.FC = () => {
                 color: 'var(--text-tertiary)',
               }}
             >
-              <CheckCircle2 size={20} />
+              {search ? <Search size={20} /> : <CheckCircle2 size={20} />}
             </div>
             <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-              Nenhum entregável cadastrado neste projeto
+              {search ? `Nenhum entregável encontrado para "${search}"` : 'Nenhum entregável cadastrado neste projeto'}
             </h3>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', maxWidth: '380px' }}>
-              Crie entregáveis (como layouts Figma, copys, vídeos ou relatórios) para versionar e submeter ao cliente para aprovação.
+              {search
+                ? 'Tente buscar por outro termo ou limpe o filtro de busca.'
+                : 'Crie entregáveis (como layouts Figma, copys, vídeos ou relatórios) para versionar e submeter ao cliente para aprovação.'}
             </p>
-            <button
-              onClick={handleOpenCreateDeliverable}
-              className="btn btn-primary btn-sm"
-            >
-              <Plus size={14} />
-              <span>Adicionar Entregável</span>
-            </button>
+            {search ? (
+              <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
+                Limpar busca
+              </button>
+            ) : (
+              <button
+                onClick={handleOpenCreateDeliverable}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus size={14} />
+                <span>Adicionar Entregável</span>
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {deliverables.map((d) => (
-              <div
-                key={d.id}
-                className="card"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                  padding: '1.25rem',
-                }}
-              >
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-                      <h3
-                        style={{
-                          fontSize: '1rem',
-                          fontWeight: 600,
-                          letterSpacing: '-0.02em',
-                          color: 'var(--text-primary)',
-                          margin: 0,
-                        }}
-                      >
-                        {d.title}
-                      </h3>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '0.6875rem',
-                          fontWeight: 600,
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          border: '1px solid var(--border-hairline)',
-                          background: 'var(--bg-subtle)',
-                          color: 'var(--text-secondary)',
-                          letterSpacing: '0.04em',
-                        }}
-                      >
-                        v{d.currentVersionNumber}
-                      </span>
-                      {d.clientVisible && (
+            {deliverables
+              .slice()
+              .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+              .map((d) => {
+              const currentVer = d.versions?.[0]?.versionNumber || d.currentVersionNumber || 1;
+              const latestChangeRequest = d.approvals?.find((a) => a.decision === 'CHANGES_REQUESTED');
+
+              return (
+                <div
+                  key={d.id}
+                  className="card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    padding: '1.25rem',
+                    border: d.status === 'CHANGES_REQUESTED' ? '1px solid rgba(239, 68, 68, 0.4)' : undefined,
+                  }}
+                >
+                  {/* Changes Requested Banner */}
+                  {d.status === 'CHANGES_REQUESTED' && (
+                    <div
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.08)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                        borderRadius: '6px',
+                        padding: '0.875rem 1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 600, fontSize: '0.8125rem' }}>
+                          <AlertCircle size={16} />
+                          <span>AJUSTES SOLICITADOS PELO CLIENTE (v{latestChangeRequest?.version?.versionNumber || currentVer})</span>
+                        </div>
+                        {latestChangeRequest?.actor?.name && (
+                          <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
+                            Solicitado por {latestChangeRequest.actor.name} em {new Date(latestChangeRequest.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                      </div>
+                      {latestChangeRequest?.comment && (
+                        <div
+                          style={{
+                            background: 'var(--bg-surface)',
+                            border: '1px solid var(--border-hairline)',
+                            borderRadius: '4px',
+                            padding: '0.625rem 0.875rem',
+                            fontSize: '0.8125rem',
+                            color: 'var(--text-primary)',
+                            fontStyle: 'italic',
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          "{latestChangeRequest.comment}"
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                        <button
+                          onClick={() => {
+                            setActiveDeliverable(d);
+                            setVersionTitle(`Ajustes v${currentVer + 1}`);
+                            setExternalUrl(d.versions?.[0]?.externalUrl || '');
+                            setVersionNotes('');
+                            setSubmitDirectly(true);
+                            setVersionModalOpen(true);
+                          }}
+                          className="btn btn-sm"
+                          style={{
+                            backgroundColor: '#ef4444',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            border: 'none',
+                            gap: '6px',
+                          }}
+                        >
+                          <Send size={13} />
+                          <span>Enviar Nova Versão com Ajustes</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
+                        <h3
+                          style={{
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                            letterSpacing: '-0.02em',
+                            color: 'var(--text-primary)',
+                            margin: 0,
+                          }}
+                        >
+                          {d.title}
+                        </h3>
                         <span
                           style={{
                             fontFamily: 'var(--font-mono)',
-                            fontSize: '0.625rem',
-                            letterSpacing: '0.06em',
-                            color: 'var(--accent-primary)',
-                            textTransform: 'uppercase',
+                            fontSize: '0.6875rem',
+                            fontWeight: 600,
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-hairline)',
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                            letterSpacing: '0.04em',
                           }}
                         >
-                          • VISÍVEL AO CLIENTE
+                          v{currentVer}
                         </span>
+                        {d.clientVisible && (
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.625rem',
+                              letterSpacing: '0.06em',
+                              color: 'var(--accent-primary)',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            • VISÍVEL AO CLIENTE
+                          </span>
+                        )}
+                      </div>
+                      {d.description && (
+                        <p
+                          style={{
+                            fontSize: '0.8125rem',
+                            color: 'var(--text-secondary)',
+                            marginTop: '0.35rem',
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {d.description}
+                        </p>
                       )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginTop: '0.35rem', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.6875rem',
+                            fontFamily: 'var(--font-mono)',
+                            color: 'var(--text-tertiary)',
+                          }}
+                          title={`Última alteração: ${new Date(d.updatedAt || d.createdAt).toLocaleString('pt-BR')}`}
+                        >
+                          <Clock size={11} />
+                          Modificado {formatRelativeTime(d.updatedAt || d.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                    {d.description && (
-                      <p
-                        style={{
-                          fontSize: '0.8125rem',
-                          color: 'var(--text-secondary)',
-                          marginTop: '0.35rem',
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {d.description}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <StatusBadge status={d.status} />
+                    {/* Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <StatusBadge status={d.status} />
 
-                    {d.status === 'DRAFT' && (
+                      {(d.status === 'DRAFT' || d.status === 'CHANGES_REQUESTED') && (
+                        <button
+                          onClick={() => handleSubmitForReview(d.id)}
+                          className="btn btn-primary btn-sm"
+                          title={d.status === 'CHANGES_REQUESTED' ? "Submeter ajustes para aprovação do cliente" : "Enviar para aprovação do cliente"}
+                        >
+                          <Send size={13} />
+                          <span>{d.status === 'CHANGES_REQUESTED' ? 'Submeter Ajustes' : 'Submeter'}</span>
+                        </button>
+                      )}
+
                       <button
-                        onClick={() => handleSubmitForReview(d.id)}
-                        className="btn btn-primary btn-sm"
-                        title="Enviar para aprovação do cliente"
+                        onClick={() => handleOpenEditDeliverable(d)}
+                        className="btn btn-outline btn-sm"
+                        title="Editar entregável"
                       >
-                        <Send size={13} />
-                        <span>Submeter</span>
+                        <Edit2 size={13} />
+                        <span>Editar</span>
                       </button>
-                    )}
 
-                    <button
-                      onClick={() => handleOpenEditDeliverable(d)}
-                      className="btn btn-outline btn-sm"
-                      title="Editar entregável"
-                    >
-                      <Edit2 size={13} />
-                      <span>Editar</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setActiveDeliverable(d);
-                        setVersionModalOpen(true);
-                      }}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <ExternalLink size={13} />
-                      <span>Nova Versão</span>
-                    </button>
+                      <button
+                        onClick={() => {
+                          setActiveDeliverable(d);
+                          setVersionTitle('');
+                          setExternalUrl(d.versions?.[0]?.externalUrl || '');
+                          setVersionNotes('');
+                          setSubmitDirectly(d.status === 'CHANGES_REQUESTED');
+                          setVersionModalOpen(true);
+                        }}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Nova Versão</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
 
                 {/* Versions list */}
                 {d.versions && d.versions.length > 0 && (
@@ -650,7 +833,8 @@ export const DeliverablesPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ))}
+            );
+          })}
           </div>
         )}
       </div>
@@ -846,8 +1030,36 @@ export const DeliverablesPage: React.FC = () => {
       </Modal>
 
       {/* Add Version Modal */}
-      <Modal isOpen={versionModalOpen} onClose={() => setVersionModalOpen(false)} title={`Nova Versão: ${activeDeliverable?.title}`}>
+      <Modal
+        isOpen={versionModalOpen}
+        onClose={() => setVersionModalOpen(false)}
+        title={
+          activeDeliverable?.status === 'CHANGES_REQUESTED'
+            ? `Enviar Nova Versão com Ajustes: ${activeDeliverable?.title}`
+            : `Nova Versão: ${activeDeliverable?.title}`
+        }
+      >
         <form onSubmit={handleAddVersion} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {activeDeliverable?.status === 'CHANGES_REQUESTED' && (
+            <div
+              style={{
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                borderRadius: '6px',
+                padding: '0.75rem 1rem',
+                fontSize: '0.8125rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 600, marginBottom: '0.35rem' }}>
+                <AlertCircle size={15} />
+                <span>LEMBRETE DO AJUSTE SOLICITADO:</span>
+              </div>
+              <p style={{ margin: 0, color: 'var(--text-primary)', fontStyle: 'italic', lineHeight: 1.4 }}>
+                "{activeDeliverable.approvals?.find((a) => a.decision === 'CHANGES_REQUESTED')?.comment || 'Ajustes solicitados pelo cliente.'}"
+              </p>
+            </div>
+          )}
+
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
               Título ou Resumo da Versão
@@ -856,7 +1068,7 @@ export const DeliverablesPage: React.FC = () => {
               type="text"
               value={versionTitle}
               onChange={(e) => setVersionTitle(e.target.value)}
-              placeholder="Ex: Ajustes solicitados de tipografia"
+              placeholder="Ex: Ajustes de tipografia e paleta de cores"
             />
           </div>
 
@@ -875,14 +1087,27 @@ export const DeliverablesPage: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.375rem' }}>
-              Notas da Versão (Changelog)
+              Notas da Versão (O que foi alterado)
             </label>
             <textarea
               rows={3}
               value={versionNotes}
               onChange={(e) => setVersionNotes(e.target.value)}
-              placeholder="Detalhes sobre o que foi alterado nesta iteração..."
+              placeholder="Descreva o que foi corrigido para o cliente saber o que avaliar..."
             />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-subtle)', padding: '0.625rem 0.875rem', borderRadius: '4px', border: '1px solid var(--border-hairline)' }}>
+            <input
+              type="checkbox"
+              id="submitDirectlyCheck"
+              checked={submitDirectly}
+              onChange={(e) => setSubmitDirectly(e.target.checked)}
+              style={{ width: 'auto' }}
+            />
+            <label htmlFor="submitDirectlyCheck" style={{ fontSize: '0.8125rem', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: 500 }}>
+              Enviar imediatamente para avaliação do cliente no portal
+            </label>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)' }}>
@@ -890,7 +1115,11 @@ export const DeliverablesPage: React.FC = () => {
               Cancelar
             </button>
             <button type="submit" disabled={submitting} className="btn btn-primary btn-sm">
-              {submitting ? 'Salvando...' : 'Adicionar Versão'}
+              {submitting
+                ? 'Enviando...'
+                : submitDirectly
+                ? 'Enviar Nova Versão ao Cliente'
+                : 'Salvar como Rascunho'}
             </button>
           </div>
         </form>
