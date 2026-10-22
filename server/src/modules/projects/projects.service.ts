@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, ForbiddenError, PlanLimitError } from '../../lib/errors';
+import { generateBase64Id } from '../../lib/id';
 import { getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import type { CreateProjectInput, UpdateProjectInput, ListProjectsInput } from './projects.validation';
 
@@ -21,6 +22,7 @@ export class ProjectService {
 
     return prisma.project.create({
       data: {
+        id: generateBase64Id('p'),
         organizationId: orgId,
         clientId: input.clientId,
         name: input.name,

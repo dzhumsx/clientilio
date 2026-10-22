@@ -10,7 +10,7 @@ const HTML_TAG_REGEX = /<\/?[^>]+(>|$)/g;
 /**
  * Remove caracteres nulos, tags de script e injeções perigosas de uma string
  */
-export function sanitizeString(value: string, allowBasicText: boolean = true): string {
+export function sanitizeString(value: string): string {
   if (typeof value !== 'string') return value;
 
   // 1. Remove byte nulo (null byte poison attack)
@@ -22,10 +22,8 @@ export function sanitizeString(value: string, allowBasicText: boolean = true): s
   // 3. Remove manipuladores de eventos maliciosos (ex: onclick, onload, onerror)
   cleaned = cleaned.replace(DANGEROUS_ATTRIBUTES, '');
 
-  // 4. Se não for texto longo formatado, limpa tags HTML soltas para evitar injeção
-  if (!allowBasicText) {
-    cleaned = cleaned.replace(HTML_TAG_REGEX, '');
-  }
+  // 4. Remove tags HTML soltas para evitar injeção em nomes, títulos e inputs gerais
+  cleaned = cleaned.replace(HTML_TAG_REGEX, '');
 
   return cleaned.trim();
 }

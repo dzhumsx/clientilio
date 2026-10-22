@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { generateUniqueSlug, generateSecureToken, hashToken } from '../../lib/auth';
+import { generateBase64Id } from '../../lib/id';
 import { NotFoundError, ForbiddenError, ConflictError, PlanLimitError } from '../../lib/errors';
 import { getPlanLimits } from '../../config/plans';
 import { getOwnerPlanAndUsage, getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
@@ -22,6 +23,7 @@ export class OrganizationService {
 
     const org = await prisma.organization.create({
       data: {
+        id: generateBase64Id('o'),
         name: input.name,
         slug,
         ownerId: userId,

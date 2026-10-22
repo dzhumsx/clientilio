@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createProjectSchema = z.object({
-  clientId: z.string().uuid(),
+  clientId: z.string().min(1, 'Cliente é obrigatório'),
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   category: z.string().max(100).optional(),
@@ -23,7 +23,7 @@ export const updateProjectSchema = z.object({
 });
 
 export const listProjectsSchema = z.object({
-  clientId: z.string().uuid().optional(),
+  clientId: z.string().min(1).optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED', 'ALL']).optional().default('ALL'),
   search: z.string().optional(),
   page: z.coerce.number().min(1).optional().default(1),

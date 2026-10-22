@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const createTaskSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   title: z.string().min(1).max(300),
   description: z.string().max(5000).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional().default('MEDIUM'),
-  assigneeId: z.string().uuid().optional(),
+  assigneeId: z.string().min(1).optional(),
   dueDate: z.string().datetime().optional(),
 });
 
@@ -14,12 +14,12 @@ export const updateTaskSchema = z.object({
   description: z.string().max(5000).optional(),
   status: z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-  assigneeId: z.string().uuid().optional().nullable(),
+  assigneeId: z.string().min(1).optional().nullable(),
   dueDate: z.string().datetime().optional().nullable(),
 });
 
 export const createDeliverableSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   title: z.string().min(1).max(300),
   description: z.string().max(5000).optional(),
   type: z.enum(['IMAGE', 'VIDEO', 'DOCUMENT', 'PRESENTATION', 'TEXT', 'CAPTION', 'REPORT', 'CREATIVE', 'BRANDING', 'EXTERNAL_PREVIEW', 'OTHER']).optional().default('OTHER'),
@@ -38,7 +38,7 @@ export const createVersionSchema = z.object({
   title: z.string().max(300).optional(),
   notes: z.string().max(2000).optional(),
   externalUrl: z.string().url().optional().or(z.literal('')),
-  fileId: z.string().uuid().optional(),
+  fileId: z.string().min(1).optional(),
   submitForReview: z.boolean().optional(),
 });
 
@@ -49,7 +49,7 @@ export const submitApprovalSchema = z.object({
 
 export const createCommentSchema = z.object({
   resourceType: z.enum(['project', 'deliverable']),
-  resourceId: z.string().uuid(),
+  resourceId: z.string().min(1),
   body: z.string().min(1).max(5000),
   visibility: z.enum(['INTERNAL', 'CLIENT_VISIBLE']).optional().default('CLIENT_VISIBLE'),
 });

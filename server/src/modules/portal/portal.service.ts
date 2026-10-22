@@ -1,6 +1,28 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, AppError } from '../../lib/errors';
 
+/**
+ * Builds the query filter for resolving a project portal by token or ID.
+ * Supports:
+ * - Direct Base64 project ID (e.g. 'prj_7xK2m9Pq')
+ * - Raw 8-character Base64 token (e.g. '7xK2m9Pq' -> matches 'prj_7xK2m9Pq')
+ * - Full legacy UUID or 8-char UUID prefix
+ */
+function buildProjectPortalWhere(token: string) {
+  const clean = token.trim();
+  const conditions: Array<Record<string, any>> = [
+    { id: clean },
+    { id: { startsWith: clean } },
+  ];
+  if (!clean.startsWith('p_')) {
+    conditions.push({ id: `p_${clean}` });
+  }
+  if (!clean.startsWith('prj_')) {
+    conditions.push({ id: `prj_${clean}` });
+  }
+  return { OR: conditions };
+}
+
 export class PortalService {
   /**
    * Fetch project portal public data by token or project ID.
@@ -12,12 +34,10 @@ export class PortalService {
     }
 
     const cleanToken = token.trim();
+    const whereClause = buildProjectPortalWhere(cleanToken);
 
-    // Query project with its client, agency (organization), and deliverables
     const project = await prisma.project.findFirst({
-      where: {
-        id: cleanToken,
-      },
+      where: whereClause,
       include: {
         client: {
           select: {
@@ -165,10 +185,11 @@ export class PortalService {
     }
   ) {
     const cleanToken = token.trim();
+    const whereClause = buildProjectPortalWhere(cleanToken);
 
     // Verify project belongs to token
     const project = await prisma.project.findFirst({
-      where: { id: cleanToken },
+      where: whereClause,
       include: {
         client: { select: { name: true } },
       },
@@ -276,8 +297,10 @@ export class PortalService {
     }
 
     const cleanToken = token.trim();
+    const whereClause = buildProjectPortalWhere(cleanToken);
+
     const project = await prisma.project.findFirst({
-      where: { id: cleanToken },
+      where: whereClause,
       include: { client: { select: { name: true } } },
     });
 

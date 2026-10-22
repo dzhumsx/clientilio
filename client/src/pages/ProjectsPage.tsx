@@ -694,9 +694,11 @@ export const ProjectsPage: React.FC = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const portalUrl = `${window.location.origin}/portal/${p.id}`;
+                        const isPrefixed = p.id.startsWith('p_') || p.id.startsWith('prj_');
+                        const portalToken = isPrefixed ? p.id : (p.id.includes('-') ? p.id.split('-')[0] : p.id);
+                        const portalUrl = `${window.location.origin}/p/${portalToken}`;
                         navigator.clipboard.writeText(portalUrl);
-                        toast.success(`Link do portal (${p.name}) copiado!`);
+                        toast.success(`Link do portal (${portalUrl}) copiado!`);
                       }}
                       className="btn btn-outline btn-sm"
                       title="Copiar link do portal do cliente (acesso sem senha)"
@@ -706,7 +708,7 @@ export const ProjectsPage: React.FC = () => {
                       <span>Link Portal</span>
                     </button>
                     <a
-                      href={`/portal/${p.id}`}
+                      href={`/p/${p.id.startsWith('p_') || p.id.startsWith('prj_') ? p.id : (p.id.includes('-') ? p.id.split('-')[0] : p.id)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-outline btn-sm"

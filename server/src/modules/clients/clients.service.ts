@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, PlanLimitError } from '../../lib/errors';
+import { generateBase64Id } from '../../lib/id';
 import { getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import type { CreateClientInput, UpdateClientInput, ListClientsInput } from './clients.validation';
 
@@ -13,6 +14,7 @@ export class ClientService {
 
     const client = await prisma.client.create({
       data: {
+        id: generateBase64Id('c'),
         organizationId: orgId,
         name: input.name,
         email: input.email,
