@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Sparkles,
   Search,
+  Building2,
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
@@ -205,8 +206,8 @@ export const TeamPage: React.FC = () => {
   return (
     <div>
       <Navbar
-        title="Equipe & Permissões"
-        subtitle="Gerencie colaboradores, níveis de acesso e convites para sua agência"
+        title={`Equipe da Agência ${currentOrg?.name ? `• ${currentOrg.name}` : ''}`}
+        subtitle={`Colaboradores e permissões vinculados exclusivamente à agência "${currentOrg?.name || 'sua agência'}". A equipe pertence à agência, e não ao usuário individual.`}
         actions={
           isOwnerOrAdmin && (
             <button onClick={handleOpenInvite} className="btn btn-primary btn-sm">
@@ -218,6 +219,70 @@ export const TeamPage: React.FC = () => {
       />
 
       <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+        {/* Agency Ownership Context Banner */}
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-hairline)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                backgroundColor: 'var(--accent-subtle)',
+                color: 'var(--accent-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '13px',
+              }}
+            >
+              <Building2 size={18} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Equipe referente à agência: <strong>{currentOrg?.name || 'Agência Atual'}</strong>
+                </span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    color: 'var(--accent-primary)',
+                    padding: '1px 6px',
+                    borderRadius: '10px',
+                    fontWeight: 600,
+                  }}
+                >
+                  WORKSPACE
+                </span>
+              </div>
+              <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                Esta equipe pertence à agência ativa. Seus membros e permissões são isolados deste workspace.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/dashboard/profile?tab=AGENCIES"
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <span>Minhas Agências</span>
+            <Building2 size={13} />
+          </Link>
+        </div>
         {/* Plan Limit & Quota Card */}
         <div
           className="card"

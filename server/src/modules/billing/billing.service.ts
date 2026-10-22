@@ -2,7 +2,8 @@ import Stripe from 'stripe';
 import { prisma } from '../../lib/prisma';
 import { env } from '../../config/env';
 import { NotFoundError, AppError } from '../../lib/errors';
-import { PLANS, PlanId, getPlanLimits } from '../../config/plans';
+import { PLANS, PlanId, getPlan, getPlanLimits } from '../../config/plans';
+import { getOwnerPlanAndUsage, syncOwnerPlanAcrossAgencies } from './owner-limits';
 import { SubscriptionStatus } from '@prisma/client';
 
 const stripe = env.STRIPE_SECRET_KEY
@@ -25,24 +26,37 @@ export class BillingService {
       throw new NotFoundError('Organization');
     }
 
-    const currentPlanId = (org.planId || 'free') as PlanId;
-    const planConfig = PLANS[currentPlanId] || PLANS.free;
-    const limits = getPlanLimits(currentPlanId);
+    // Resolve owner's shared plan, limits, and usage across all organizations owned by this user
+    const ownerData = await getOwnerPlanAndUsage(org.ownerId);
+    const planConfig = ownerData.planConfig;
+    const limits = ownerData.limits;
 
-    // Count usage sequentially
-    const clientCount = await prisma.client.count({ where: { organizationId, status: 'ACTIVE' } });
-    const projectCount = await prisma.project.count({ where: { organizationId, status: { not: 'COMPLETED' } } });
-    const memberCount = await prisma.membership.count({ where: { organizationId, isActive: true } });
+    const availablePlansList = [
+      PLANS.free,
+      PLANS.pro,
+      PLANS.pro_yearly,
+      PLANS.business,
+      PLANS.business_yearly,
+      PLANS.agency,
+      PLANS.agency_yearly,
+    ];
 
     return {
       organizationId: org.id,
-      planId: currentPlanId,
+      ownerId: org.ownerId,
+      planId: planConfig.id,
+      basePlanId: planConfig.basePlanId,
       planName: planConfig.name,
+      planInterval: planConfig.interval,
       planPrice: planConfig.priceBRL,
+      monthlyEquivalentPrice: planConfig.monthlyEquivalentBRL,
+      savings: planConfig.savingsBRL,
+      discountPercent: planConfig.discountPercent,
       status: org.subscription?.status || SubscriptionStatus.FREE,
       cancelAtPeriodEnd: org.subscription?.cancelAtPeriodEnd || false,
       currentPeriodEnd: org.subscription?.currentPeriodEnd || null,
       limits: {
+        maxAgencies: limits.maxAgencies,
         maxActiveClients: limits.maxActiveClients,
         maxActiveProjects: limits.maxActiveProjects,
         maxTeamMembers: limits.maxTeamMembers,
@@ -50,11 +64,12 @@ export class BillingService {
         customDomain: limits.customDomain,
       },
       usage: {
-        clients: clientCount,
-        projects: projectCount,
-        teamMembers: memberCount,
+        agencies: ownerData.usage.agencies,
+        clients: ownerData.usage.clients,
+        projects: ownerData.usage.projects,
+        teamMembers: ownerData.usage.teamMembers,
       },
-      availablePlans: Object.values(PLANS),
+      availablePlans: availablePlansList,
     };
   }
 
@@ -65,7 +80,8 @@ export class BillingService {
     organizationId: string,
     targetPlanId: PlanId,
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    interval: 'monthly' | 'yearly' = 'monthly'
   ) {
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
@@ -76,20 +92,35 @@ export class BillingService {
       throw new NotFoundError('Organization');
     }
 
-    const targetPlan = PLANS[targetPlanId];
-    if (!targetPlan || targetPlanId === 'free') {
+    // Resolve exact plan definition (separated internally)
+    let resolvedPlanId = targetPlanId;
+    if (interval === 'yearly' && !resolvedPlanId.endsWith('_yearly')) {
+      const yearlyCandidate = `${resolvedPlanId}_yearly` as PlanId;
+      if (PLANS[yearlyCandidate]) {
+        resolvedPlanId = yearlyCandidate;
+      }
+    } else if (interval === 'monthly' && resolvedPlanId.endsWith('_yearly')) {
+      const base = resolvedPlanId.replace('_yearly', '') as PlanId;
+      if (PLANS[base]) {
+        resolvedPlanId = base;
+      }
+    }
+
+    const targetPlan = PLANS[resolvedPlanId] || getPlan(resolvedPlanId);
+    if (!targetPlan || targetPlan.id === 'free') {
       throw new AppError('Invalid subscription plan selected', 400);
     }
+
+    const isYearly = targetPlan.interval === 'yearly';
+    const days = isYearly ? 365 : 30;
 
     // In demo / test mode without Stripe secret key: directly upgrade plan
     if (!stripe) {
       const now = new Date();
-      const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+      const periodEnd = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
-      await prisma.organization.update({
-        where: { id: organizationId },
-        data: { planId: targetPlanId },
-      });
+      // Sync plan across all organizations owned by this user
+      await syncOwnerPlanAcrossAgencies(org.ownerId, targetPlan.id);
 
       await prisma.subscription.upsert({
         where: { organizationId },
@@ -97,21 +128,22 @@ export class BillingService {
           organizationId,
           provider: 'stripe_mock',
           status: SubscriptionStatus.ACTIVE,
-          planId: targetPlanId,
+          planId: targetPlan.id,
           currentPeriodEnd: periodEnd,
         },
         update: {
           provider: 'stripe_mock',
           status: SubscriptionStatus.ACTIVE,
-          planId: targetPlanId,
+          planId: targetPlan.id,
           currentPeriodEnd: periodEnd,
           cancelAtPeriodEnd: false,
         },
       });
 
       return {
-        client_secret: `mock_secret_${targetPlanId}`,
+        client_secret: `mock_secret_${targetPlan.id}`,
         simulated: true,
+        planId: targetPlan.id,
       };
     }
 
@@ -146,13 +178,13 @@ export class BillingService {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: `Plano ${targetPlan.name} — Gestão de Clientes`,
+              name: `Plano ${targetPlan.name} (${isYearly ? 'Anual com 10% OFF' : 'Mensal'}) — Gestão de Clientes`,
               description: targetPlan.limits.maxActiveClients === -1
                 ? `Acesso a clientes ilimitados e ${targetPlan.limits.maxActiveProjects} projetos.`
                 : `Acesso a até ${targetPlan.limits.maxActiveClients} clientes e ${targetPlan.limits.maxActiveProjects} projetos.`,
             },
-            unit_amount: targetPlan.priceBRL * 100, // in cents
-            recurring: { interval: 'month' },
+            unit_amount: Math.round(targetPlan.priceBRL * 100),
+            recurring: { interval: isYearly ? 'year' : 'month' },
           },
           quantity: 1,
         },
@@ -169,16 +201,16 @@ export class BillingService {
         provider: 'stripe',
         providerCustomerId: customerId,
         status: SubscriptionStatus.CHECKOUT_INITIATED,
-        planId: targetPlanId,
+        planId: targetPlan.id,
       },
       update: {
         providerCustomerId: customerId,
         status: SubscriptionStatus.CHECKOUT_INITIATED,
-        planId: targetPlanId,
+        planId: targetPlan.id,
       },
     });
 
-    return { client_secret: session.client_secret, simulated: false };
+    return { client_secret: session.client_secret, simulated: false, planId: targetPlan.id };
   }
 
   /**

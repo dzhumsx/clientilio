@@ -1,24 +1,14 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, PlanLimitError } from '../../lib/errors';
-import { getPlanLimits } from '../../config/plans';
+import { getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import type { CreateClientInput, UpdateClientInput, ListClientsInput } from './clients.validation';
 
 export class ClientService {
   async create(orgId: string, input: CreateClientInput, userId: string) {
-    // Check plan limit
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: {
-        planId: true,
-        _count: { select: { clients: { where: { status: 'ACTIVE' } } } },
-      },
-    });
-
-    if (!org) throw new NotFoundError('Organization');
-
-    const limits = getPlanLimits(org.planId);
-    if (limits.maxActiveClients !== -1 && org._count.clients >= limits.maxActiveClients) {
-      throw new PlanLimitError('active_clients', org._count.clients, limits.maxActiveClients);
+    // Check shared owner plan limits across all owner's agencies
+    const { limits, usage } = await getOrgOwnerLimitsAndUsage(orgId);
+    if (limits.maxActiveClients !== -1 && usage.clients >= limits.maxActiveClients) {
+      throw new PlanLimitError('active_clients', usage.clients, limits.maxActiveClients);
     }
 
     const client = await prisma.client.create({
@@ -134,20 +124,10 @@ export class ClientService {
 
     if (!client) throw new NotFoundError('Client');
 
-    // Check plan limit before reactivation
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: {
-        planId: true,
-        _count: { select: { clients: { where: { status: 'ACTIVE' } } } },
-      },
-    });
-
-    if (!org) throw new NotFoundError('Organization');
-
-    const limits = getPlanLimits(org.planId);
-    if (limits.maxActiveClients !== -1 && org._count.clients >= limits.maxActiveClients) {
-      throw new PlanLimitError('active_clients', org._count.clients, limits.maxActiveClients);
+    // Check shared owner plan limit before reactivation
+    const { limits, usage } = await getOrgOwnerLimitsAndUsage(orgId);
+    if (limits.maxActiveClients !== -1 && usage.clients >= limits.maxActiveClients) {
+      throw new PlanLimitError('active_clients', usage.clients, limits.maxActiveClients);
     }
 
     return prisma.client.update({

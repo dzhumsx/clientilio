@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  const adminEmail = 'admin@Marketiv.io.com';
+  const adminEmail = 'admin@nexora.com';
   const existingUser = await prisma.user.findUnique({
     where: { email: adminEmail },
   });

@@ -6,6 +6,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  changePasswordSchema,
 } from './auth.validation';
 import { authenticate } from '../../middleware/auth';
 import { verifyAccessToken, verifyRefreshToken, getSessionCookieOptions, SESSION_COOKIE_NAME, verifyPassword } from '../../lib/auth';
@@ -174,6 +175,17 @@ router.put('/profile', authenticate, async (req: Request, res: Response, next: N
     const data = updateProfileSchema.parse(req.body);
     const profile = await authService.updateProfile(req.user!.userId, data);
     res.json(profile);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = changePasswordSchema.parse(req.body);
+    const result = await authService.changePassword(req.user!.userId, data);
+    res.json(result);
   } catch (error) {
     next(error);
   }

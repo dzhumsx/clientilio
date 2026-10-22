@@ -35,12 +35,13 @@ billingRouter.post(
   requireRole('OWNER', 'ADMIN'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { planId, successUrl, cancelUrl } = req.body;
+      const { planId, interval = 'monthly', successUrl, cancelUrl } = req.body;
       const result = await BillingService.createCheckoutSession(
         req.organizationId!,
         planId as PlanId,
         successUrl || `${req.headers.origin || 'http://localhost:5173'}/dashboard/settings/billing`,
-        cancelUrl || `${req.headers.origin || 'http://localhost:5173'}/dashboard/settings/billing`
+        cancelUrl || `${req.headers.origin || 'http://localhost:5173'}/dashboard/settings/billing`,
+        interval === 'yearly' ? 'yearly' : 'monthly'
       );
       res.json(result);
     } catch (err) {

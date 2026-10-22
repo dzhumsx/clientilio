@@ -229,7 +229,6 @@ Crie uma camada central de plano/entitlements para decidir:
 - projetos ativos;
 - armazenamento utilizado;
 - número de membros;
-- acesso a white-label;
 - domínio personalizado;
 - modelos, automações e relatórios;
 - outros recursos cobrados no futuro.
@@ -289,7 +288,6 @@ A conta Free deve continuar utilizável sem cartão. Cancelar um plano pago não
 ### 6.2 Importante, mas pode ser posterior
 
 - Checkout e cobrança recorrente em produção, se a conta do provedor ainda não estiver disponível. A integração deve ter contratos e modo de teste, sem fingir que há cobrança real.
-- White-label avançado e domínio personalizado.
 - Relatórios avançados.
 - Automações configuráveis.
 - Modelos avançados.
@@ -522,17 +520,6 @@ Se usar processamento assíncrono, trate repetição de jobs e falhas. Se a fila
 Modelos podem definir título, descrição inicial, categoria, tarefas iniciais, tipos de entregáveis e instruções. Permita criar projeto a partir de modelo e manter cópia dos valores no novo projeto, para que editar o modelo não altere projetos já criados.
 
 Forneça modelos de exemplo para social media, tráfego pago, SEO, branding, conteúdo, audiovisual e marketing integrado, mas todos devem usar o mesmo mecanismo de dados.
-
-### 7.12 Marca e white-label
-
-Permita configurar, conforme o plano:
-- nome exibido;
-- logotipo;
-- cores;
-- marca do SaaS;
-- domínio personalizado.
-
-A implementação de domínio personalizado exige infraestrutura real, incluindo validação de propriedade, configuração DNS, TLS/HTTPS e roteamento. Não trate isso como mera mudança de CSS. Se a infraestrutura ainda não estiver disponível, implemente o modelo de configuração e documente claramente que a ativação de produção está pendente; não exiba domínio como ativo sem validação.
 
 ### 7.13 Busca, filtros e paginação
 
@@ -1331,7 +1318,6 @@ Ajuste a ordem conforme a stack existente, mas mantenha as dependências e os cr
 - marca básica;
 - modelos universais;
 - métricas de ativação e uso;
-- white-label e domínio apenas conforme infraestrutura disponível.
 
 **Aceitação**
 - modelos criam projetos independentes do modelo original;

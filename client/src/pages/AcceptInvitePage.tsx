@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 export const AcceptInvitePage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const { user, currentOrg, refreshProfile } = useAuth();
+  const { user, currentOrg, setCurrentOrg, refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [inviteData, setInviteData] = useState<{
@@ -52,15 +52,18 @@ export const AcceptInvitePage: React.FC = () => {
     if (!token) return;
     setAccepting(true);
     try {
-      await api.post('/organizations/invitations/accept', { token });
+      const { data } = await api.post('/organizations/invitations/accept', { token });
       setAccepted(true);
       toast.success('Você ingressou na agência com sucesso!');
       if (refreshProfile) {
         await refreshProfile();
       }
+      if (data?.organization) {
+        setCurrentOrg(data.organization);
+      }
       setTimeout(() => {
         navigate('/dashboard');
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       console.error('Failed to accept invitation:', err);
       toast.error(err.response?.data?.error?.message || 'Erro ao aceitar convite.');
@@ -195,7 +198,7 @@ export const AcceptInvitePage: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <Link
-              to={`/register?redirect=/invite/${token}&email=${encodeURIComponent(inviteData.email)}`}
+              to={`/register?token=${token}&email=${encodeURIComponent(inviteData.email)}&redirect=/dashboard`}
               className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', padding: '0.75rem' }}
             >

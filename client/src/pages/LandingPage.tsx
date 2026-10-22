@@ -171,8 +171,8 @@ export const LandingPage: React.FC = () => {
                 <span>Começar Gratuitamente</span>
                 <ArrowRight size={16} />
               </Link>
-              <Link to="/portal" className="btn btn-ghost btn-lg">
-                <span>Ver Portal do Cliente</span>
+              <Link to="/dashboard" className="btn btn-ghost btn-lg">
+                <span>Acessar Dashboard</span>
                 <ExternalLink size={14} />
               </Link>
             </div>

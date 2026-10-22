@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Lock, Mail, User, Building2, AlertCircle, Sun, Moon } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowRight, Lock, Mail, User, Building2, AlertCircle, Sun, Moon, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Logo, LogoIcon } from '../components/Logo';
 
 export const RegisterPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const emailParam = searchParams.get('email');
+  const tokenParam = searchParams.get('token');
+  const redirectParam = searchParams.get('redirect');
+  const inviteToken = tokenParam || (redirectParam?.includes('/invite/') ? redirectParam.split('/invite/')[1]?.split('?')[0] : null);
+
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(emailParam || '');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +35,7 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await register(name, email, password, companyName || `${name}'s Agency`);
+      await register(name, email, password, companyName || `${name}'s Agency`, inviteToken || undefined);
       navigate('/dashboard');
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -144,6 +150,27 @@ export const RegisterPage: React.FC = () => {
           >
             <AlertCircle size={15} style={{ flexShrink: 0, marginTop: '2px' }} />
             <span>{error}</span>
+          </div>
+        )}
+
+        {inviteToken && (
+          <div
+            style={{
+              backgroundColor: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              borderRadius: '6px',
+              padding: '0.75rem 0.875rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              color: 'var(--accent-primary)',
+            }}
+          >
+            <Sparkles size={16} style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Convite de Equipe Detectado!</strong> Ao concluir o cadastro, você ingressará automaticamente na agência convidante.
+            </div>
           </div>
         )}
 

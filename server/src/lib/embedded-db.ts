@@ -54,6 +54,11 @@ export async function ensureDatabaseRunning(): Promise<boolean> {
   }
 
   const port = 5432;
+  if (globalForDb.pgliteServerInstance) {
+    console.log(`🔌 Instância PGlite já ativa nesta sessão.`);
+    return true;
+  }
+
   const inUse = await isPortInUse(port, '127.0.0.1');
 
   if (inUse) {

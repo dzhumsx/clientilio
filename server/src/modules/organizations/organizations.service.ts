@@ -2,6 +2,7 @@ import { prisma } from '../../lib/prisma';
 import { generateUniqueSlug, generateSecureToken, hashToken } from '../../lib/auth';
 import { NotFoundError, ForbiddenError, ConflictError, PlanLimitError } from '../../lib/errors';
 import { getPlanLimits } from '../../config/plans';
+import { getOwnerPlanAndUsage, getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import { MemberRole } from '@prisma/client';
 import { invalidateOrgContextCache } from '../../middleware/auth';
 import type { CreateOrganizationInput, UpdateOrganizationInput, InviteMemberInput } from './organizations.validation';
@@ -11,6 +12,12 @@ export class OrganizationService {
    * Create a new organization (user becomes owner)
    */
   async create(input: CreateOrganizationInput, userId: string) {
+    // Check shared owner agency limit based on the user's contracted plan
+    const ownerData = await getOwnerPlanAndUsage(userId);
+    if (ownerData.limits.maxAgencies !== -1 && ownerData.usage.agencies >= ownerData.limits.maxAgencies) {
+      throw new PlanLimitError('agencies', ownerData.usage.agencies, ownerData.limits.maxAgencies);
+    }
+
     const slug = generateUniqueSlug(input.name);
 
     const org = await prisma.organization.create({
@@ -18,6 +25,7 @@ export class OrganizationService {
         name: input.name,
         slug,
         ownerId: userId,
+        planId: ownerData.planId,
         memberships: {
           create: {
             userId,
@@ -26,7 +34,7 @@ export class OrganizationService {
         },
         subscription: {
           create: {
-            planId: 'free',
+            planId: ownerData.planId,
             status: 'FREE',
           },
         },
@@ -46,6 +54,50 @@ export class OrganizationService {
       planId: org.planId,
       role: org.memberships[0]?.role,
     };
+  }
+
+  /**
+   * List all organizations that a user belongs to
+   */
+  async listUserOrganizations(userId: string) {
+    const memberships = await prisma.membership.findMany({
+      where: { userId, isActive: true },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            ownerId: true,
+            planId: true,
+            createdAt: true,
+            _count: {
+              select: {
+                memberships: { where: { isActive: true } },
+                clients: { where: { status: 'ACTIVE' } },
+                projects: { where: { status: { not: 'ARCHIVED' } } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return memberships.map((m) => ({
+      id: m.organization.id,
+      name: m.organization.name,
+      slug: m.organization.slug,
+      ownerId: m.organization.ownerId,
+      planId: m.organization.planId,
+      role: m.role,
+      joinedAt: m.createdAt,
+      createdAt: m.organization.createdAt,
+      isOwner: m.role === 'OWNER',
+      memberCount: m.organization._count.memberships,
+      clientCount: m.organization._count.clients,
+      projectCount: m.organization._count.projects,
+    }));
   }
 
   /**
@@ -71,15 +123,18 @@ export class OrganizationService {
       throw new NotFoundError('Organization');
     }
 
-    const limits = getPlanLimits(org.planId);
+    // Resolve owner's shared limits and shared usage across all owner's agencies
+    const ownerData = await getOwnerPlanAndUsage(org.ownerId);
 
     return {
       ...org,
-      limits,
+      planId: ownerData.planId,
+      limits: ownerData.limits,
       usage: {
-        activeClients: org._count.clients,
-        activeProjects: org._count.projects,
-        teamMembers: org._count.memberships,
+        activeClients: ownerData.usage.clients,
+        activeProjects: ownerData.usage.projects,
+        teamMembers: ownerData.usage.teamMembers,
+        agencies: ownerData.usage.agencies,
       },
     };
   }
@@ -125,17 +180,10 @@ export class OrganizationService {
    * Invite a team member
    */
   async inviteMember(orgId: string, input: InviteMemberInput, invitedById: string) {
-    // Check team member limit
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: { planId: true, _count: { select: { memberships: { where: { isActive: true } } } } },
-    });
-
-    if (!org) throw new NotFoundError('Organization');
-
-    const limits = getPlanLimits(org.planId);
-    if (limits.maxTeamMembers !== -1 && org._count.memberships >= limits.maxTeamMembers) {
-      throw new PlanLimitError('team_members', org._count.memberships, limits.maxTeamMembers);
+    // Check shared team member limit across all agencies owned by this agency's owner
+    const { limits, usage } = await getOrgOwnerLimitsAndUsage(orgId);
+    if (limits.maxTeamMembers !== -1 && usage.teamMembers >= limits.maxTeamMembers) {
+      throw new PlanLimitError('team_members', usage.teamMembers, limits.maxTeamMembers);
     }
 
     // Check if already a member
@@ -390,5 +438,142 @@ export class OrganizationService {
     invalidateOrgContextCache(orgId, membership.userId);
 
     return { message: 'Member removed successfully' };
+  }
+
+  /**
+   * List pending invitations sent to a specific user's email
+   */
+  async listMyInvitations(userEmail: string) {
+    const cleanEmail = userEmail.toLowerCase().trim();
+    const invitations = await prisma.invitation.findMany({
+      where: {
+        email: cleanEmail,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            planId: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invitations.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      role: inv.role,
+      createdAt: inv.createdAt,
+      expiresAt: inv.expiresAt,
+      organization: inv.organization,
+      createdBy: inv.createdBy,
+    }));
+  }
+
+  /**
+   * Accept an invitation directly by ID (for logged-in existing users)
+   */
+  async acceptMyInvitation(invitationId: string, userId: string, userEmail: string) {
+    const cleanEmail = userEmail.toLowerCase().trim();
+    const invitation = await prisma.invitation.findFirst({
+      where: {
+        id: invitationId,
+        email: cleanEmail,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, planId: true },
+        },
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundError('Invitation');
+    }
+
+    const membership = await prisma.$transaction(async (tx) => {
+      // Mark invitation accepted
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { acceptedAt: new Date() },
+      });
+
+      // Upsert membership
+      const existing = await tx.membership.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId: invitation.organizationId,
+            userId,
+          },
+        },
+      });
+
+      if (existing) {
+        return tx.membership.update({
+          where: { id: existing.id },
+          data: { isActive: true, role: invitation.role },
+        });
+      }
+
+      return tx.membership.create({
+        data: {
+          organizationId: invitation.organizationId,
+          userId,
+          role: invitation.role,
+          isActive: true,
+        },
+      });
+    });
+
+    invalidateOrgContextCache(invitation.organizationId, userId);
+
+    return {
+      message: 'Invitation accepted successfully',
+      organization: invitation.organization,
+      role: membership.role,
+    };
+  }
+
+  /**
+   * Decline an invitation directly by ID (for logged-in existing users)
+   */
+  async declineMyInvitation(invitationId: string, userEmail: string) {
+    const cleanEmail = userEmail.toLowerCase().trim();
+    const invitation = await prisma.invitation.findFirst({
+      where: {
+        id: invitationId,
+        email: cleanEmail,
+        acceptedAt: null,
+        revokedAt: null,
+      },
+    });
+
+    if (!invitation) {
+      throw new NotFoundError('Invitation');
+    }
+
+    await prisma.invitation.update({
+      where: { id: invitation.id },
+      data: { revokedAt: new Date() },
+    });
+
+    return { message: 'Invitation declined successfully' };
   }
 }

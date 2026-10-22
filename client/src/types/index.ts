@@ -5,6 +5,11 @@ export interface User {
   name: string;
   email: string;
   avatarUrl?: string;
+  phone?: string;
+  jobTitle?: string;
+  bio?: string;
+  createdAt?: string;
+  emailVerified?: boolean;
 }
 
 export interface Organization {
@@ -15,6 +20,11 @@ export interface Organization {
   planId: string;
   role?: Role;
   isClientUser?: boolean;
+  memberCount?: number;
+  clientCount?: number;
+  projectCount?: number;
+  createdAt?: string;
+  joinedAt?: string;
 }
 
 export interface Client {
@@ -109,6 +119,7 @@ export interface Deliverable {
 }
 
 export interface PlanLimits {
+  maxAgencies: number;
   maxActiveClients: number;
   maxActiveProjects: number;
   maxTeamMembers: number;
@@ -116,27 +127,43 @@ export interface PlanLimits {
   customDomain: boolean;
 }
 
+export type PlanInterval = 'monthly' | 'yearly';
+
+export interface PlanDefinition {
+  id: string;
+  basePlanId?: string;
+  name: string;
+  interval?: PlanInterval;
+  priceBRL: number;
+  priceUsd: number;
+  monthlyEquivalentBRL?: number;
+  savingsBRL?: number;
+  discountPercent?: number;
+  limits: PlanLimits;
+}
+
 export interface SubscriptionInfo {
   organizationId: string;
-  planId: 'free' | 'pro' | 'business' | 'agency';
+  ownerId?: string;
+  planId: string;
+  basePlanId?: string;
   planName: string;
+  planInterval?: PlanInterval;
   planPrice: number;
+  monthlyEquivalentPrice?: number;
+  savings?: number;
+  discountPercent?: number;
   status: string;
   cancelAtPeriodEnd: boolean;
   currentPeriodEnd?: string | null;
   limits: PlanLimits;
   usage: {
+    agencies: number;
     clients: number;
     projects: number;
     teamMembers: number;
   };
-  availablePlans: Array<{
-    id: string;
-    name: string;
-    priceBRL: number;
-    priceUsd: number;
-    limits: PlanLimits;
-  }>;
+  availablePlans: PlanDefinition[];
 }
 
 export interface TeamMember {
@@ -163,4 +190,25 @@ export interface Invitation {
   };
   token?: string;
 }
+
+export interface UserAgencyInvitation {
+  id: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+  expiresAt: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string;
+    planId: string;
+  };
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  };
+}
+
 

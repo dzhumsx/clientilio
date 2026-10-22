@@ -22,6 +22,53 @@ router.post('/', authenticate, async (req: Request, res: Response, next: NextFun
   }
 });
 
+// GET /api/organizations — List all organizations the user belongs to
+router.get('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const list = await orgService.listUserOrganizations(req.user!.userId);
+    res.json(list);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/organizations/my-invitations — List pending invitations sent to current user's email
+router.get('/my-invitations', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const invitations = await orgService.listMyInvitations(req.user!.email);
+    res.json(invitations);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/organizations/my-invitations/:id/accept — Accept invitation from within the app
+router.post('/my-invitations/:id/accept', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await orgService.acceptMyInvitation(
+      req.params.id as string,
+      req.user!.userId,
+      req.user!.email
+    );
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/organizations/my-invitations/:id/decline — Decline invitation from within the app
+router.post('/my-invitations/:id/decline', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await orgService.declineMyInvitation(
+      req.params.id as string,
+      req.user!.email
+    );
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/organizations/current — Get current organization
 router.get(
   '/current',

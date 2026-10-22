@@ -63,6 +63,7 @@ export class PlanLimitError extends AppError {
       active_clients: 'clientes ativos',
       active_projects: 'projetos ativos',
       team_members: 'membros na equipe',
+      agencies: 'agências criadas',
     };
     const resourceName = resourceMap[limit] || limit;
     super(
@@ -154,6 +155,7 @@ export function errorHandler(
     err.message?.includes("Can't reach database server");
 
   if (isPrismaDbConnectionError) {
+    console.error('Prisma DB error:', err);
     res.status(503).json({
       error: {
         message:

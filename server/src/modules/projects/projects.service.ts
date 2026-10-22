@@ -1,30 +1,22 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, ForbiddenError, PlanLimitError } from '../../lib/errors';
-import { getPlanLimits } from '../../config/plans';
+import { getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import type { CreateProjectInput, UpdateProjectInput, ListProjectsInput } from './projects.validation';
 
 export class ProjectService {
   async create(orgId: string, input: CreateProjectInput, userId: string) {
-    // Verify client belongs to org and check plan limits sequentially
+    // Verify client belongs to org
     const client = await prisma.client.findFirst({
       where: { id: input.clientId, organizationId: orgId, status: 'ACTIVE' },
       select: { id: true },
     });
 
-    const org = await prisma.organization.findUnique({
-      where: { id: orgId },
-      select: {
-        planId: true,
-        _count: { select: { projects: { where: { status: { not: 'ARCHIVED' } } } } },
-      },
-    });
-
     if (!client) throw new NotFoundError('Client');
-    if (!org) throw new NotFoundError('Organization');
 
-    const limits = getPlanLimits(org.planId);
-    if (limits.maxActiveProjects !== -1 && org._count.projects >= limits.maxActiveProjects) {
-      throw new PlanLimitError('active_projects', org._count.projects, limits.maxActiveProjects);
+    // Check shared owner plan limits across all owner's agencies
+    const { limits, usage } = await getOrgOwnerLimitsAndUsage(orgId);
+    if (limits.maxActiveProjects !== -1 && usage.projects >= limits.maxActiveProjects) {
+      throw new PlanLimitError('active_projects', usage.projects, limits.maxActiveProjects);
     }
 
     return prisma.project.create({

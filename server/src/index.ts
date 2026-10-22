@@ -24,11 +24,14 @@ async function main() {
         if (!err && stdout) console.log(stdout.trim());
       });
     } else {
-      // Ensure existing test/demo organizations have the Agency plan
-      await prisma.organization.updateMany({
-        where: { planId: { not: 'agency' } },
-        data: { planId: 'agency' },
-      }).catch(() => {});
+      // Ensure admin demo organizations retain the Agency plan
+      const adminUser = await prisma.user.findUnique({ where: { email: 'admin@nexora.com' } }).catch(() => null);
+      if (adminUser) {
+        await prisma.organization.updateMany({
+          where: { ownerId: adminUser.id, planId: { not: 'agency' } },
+          data: { planId: 'agency' },
+        }).catch(() => {});
+      }
     }
   } catch (err: any) {
     console.warn('⚠️ Warning: Database connection check failed. Ensure PostgreSQL is running. Error:', err.message);

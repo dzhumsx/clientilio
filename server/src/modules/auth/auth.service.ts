@@ -22,10 +22,11 @@ import type {
   ForgotPasswordInput,
   ResetPasswordInput,
   UpdateProfileInput,
+  ChangePasswordInput,
 } from './auth.validation';
 
 export interface AuthResult {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; avatarUrl?: string | null };
   tokens: {
     accessToken: string;
     refreshToken: string;
@@ -63,9 +64,48 @@ export class AuthService {
 
     const orgName = input.companyName || `${input.name}'s Agency`;
     const orgSlug = generateUniqueSlug(orgName);
+    const userEmail = input.email.toLowerCase().trim();
 
-    // Create user, organization, owner membership and refresh token in a single transaction
-    const { user, organization } = await prisma.$transaction(async (tx) => {
+    // Check for pending invitations for this email or invite token
+    const pendingInvites = await prisma.invitation.findMany({
+      where: {
+        email: userEmail,
+        expiresAt: { gt: new Date() },
+        acceptedAt: null,
+        revokedAt: null,
+      },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, ownerId: true, planId: true },
+        },
+      },
+    });
+
+    let tokenInvite = null;
+    if (input.inviteToken) {
+      tokenInvite = await prisma.invitation.findUnique({
+        where: { tokenHash: hashToken(input.inviteToken) },
+        include: {
+          organization: {
+            select: { id: true, name: true, slug: true, ownerId: true, planId: true },
+          },
+        },
+      });
+    }
+
+    const allInvitesToClaim = [...pendingInvites];
+    if (
+      tokenInvite &&
+      !tokenInvite.acceptedAt &&
+      !tokenInvite.revokedAt &&
+      tokenInvite.expiresAt > new Date() &&
+      !allInvitesToClaim.some((i) => i.id === tokenInvite.id)
+    ) {
+      allInvitesToClaim.push(tokenInvite);
+    }
+
+    // Create user, organization, owner membership, accept invitations and refresh token in a single transaction
+    const { user, organization, joinedOrgs } = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
           name: input.name,
@@ -79,7 +119,7 @@ export class AuthService {
             },
           },
         },
-        select: { id: true, name: true, email: true },
+        select: { id: true, name: true, email: true, avatarUrl: true },
       });
 
       const newOrg = await tx.organization.create({
@@ -87,7 +127,7 @@ export class AuthService {
           name: orgName,
           slug: orgSlug,
           ownerId: newUser.id,
-          planId: 'agency',
+          planId: 'free',
           memberships: {
             create: {
               userId: newUser.id,
@@ -98,7 +138,38 @@ export class AuthService {
         select: { id: true, name: true, slug: true, ownerId: true, planId: true },
       });
 
-      return { user: newUser, organization: newOrg };
+      // Claim and accept all invitations for this user
+      const claimedOrgs: Array<{
+        id: string;
+        name: string;
+        slug: string;
+        ownerId: string;
+        planId: string;
+        role: string;
+      }> = [];
+
+      for (const inv of allInvitesToClaim) {
+        await tx.invitation.update({
+          where: { id: inv.id },
+          data: { acceptedAt: new Date() },
+        });
+
+        await tx.membership.create({
+          data: {
+            organizationId: inv.organizationId,
+            userId: newUser.id,
+            role: inv.role,
+            isActive: true,
+          },
+        });
+
+        claimedOrgs.push({
+          ...inv.organization,
+          role: inv.role,
+        });
+      }
+
+      return { user: newUser, organization: newOrg, joinedOrgs: claimedOrgs };
     });
 
     const accessToken = generateAccessToken({
@@ -111,7 +182,9 @@ export class AuthService {
       tokenId: refreshTokenId,
     });
 
+    // If invited to agencies, prioritize the invited agency as active first
     const orgList = [
+      ...joinedOrgs,
       {
         ...organization,
         role: 'OWNER',
@@ -164,7 +237,7 @@ export class AuthService {
   async completeMfaLogin(userId: string): Promise<AuthResult> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, avatarUrl: true },
     });
     if (!user) throw new NotFoundError('User');
 
@@ -206,7 +279,7 @@ export class AuthService {
     }));
 
     return {
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
       tokens: { accessToken, refreshToken },
       accessToken,
       refreshToken,
@@ -399,9 +472,13 @@ export class AuthService {
    * Update user profile
    */
   async updateProfile(userId: string, input: UpdateProfileInput) {
+    const dataToUpdate: any = {};
+    if (input.name !== undefined) dataToUpdate.name = input.name;
+    if (input.avatarUrl !== undefined) dataToUpdate.avatarUrl = input.avatarUrl;
+
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: input,
+      data: dataToUpdate,
       select: {
         id: true,
         name: true,
@@ -412,5 +489,29 @@ export class AuthService {
       },
     });
     return updated;
+  }
+
+  /**
+   * Change user password with current password verification
+   */
+  async changePassword(userId: string, input: ChangePasswordInput) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
+    });
+    if (!user) throw new NotFoundError('User');
+
+    const isValid = await verifyPassword(input.currentPassword, user.passwordHash);
+    if (!isValid) {
+      throw new UnauthorizedError('A senha atual informada está incorreta');
+    }
+
+    const newPasswordHash = await hashPassword(input.newPassword);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    return { message: 'Senha alterada com sucesso' };
   }
 }
