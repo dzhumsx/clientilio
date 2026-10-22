@@ -920,16 +920,8 @@ export const BillingPage: React.FC = () => {
                           <span>Entregáveis e links de aprovação ilimitados</span>
                         </li>
                         <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Check
-                            size={14}
-                            style={{
-                              color: p.limits.whiteLabel ? 'var(--accent-primary)' : 'var(--text-disabled)',
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span style={{ color: p.limits.whiteLabel ? 'var(--text-secondary)' : 'var(--text-disabled)' }}>
-                            White-label e Domínio Próprio {p.limits.whiteLabel ? '(Incluso)' : '(Não incluso)'}
-                          </span>
+                          <Check size={14} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                          <span>Portal do Cliente com Acesso Externo</span>
                         </li>
                         {(p.id === 'agency' || p.id === 'agency_yearly' || p.basePlanId === 'agency') && (
                           <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1040,25 +1032,11 @@ export const BillingPage: React.FC = () => {
                 <td style={{ padding: '0.75rem 1rem', fontWeight: 600, color: 'var(--accent-primary)' }}>Ilimitado</td>
               </tr>
 
-              {/* Marca & White-Label */}
+              {/* Portal do Cliente */}
               <tr style={{ borderBottom: '1px solid var(--border-hairline)' }}>
                 <td style={{ padding: '0.75rem 1rem', fontWeight: 550 }}>Portal do Cliente com Acesso Externo</td>
                 <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
                 <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
-                <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
-                <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid var(--border-hairline)' }}>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: 550 }}>Personalização White-label (Logotipo próprio)</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>—</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>—</td>
-                <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
-                <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
-              </tr>
-              <tr style={{ borderBottom: '1px solid var(--border-hairline)' }}>
-                <td style={{ padding: '0.75rem 1rem', fontWeight: 550 }}>Domínio Personalizado (ex: portal.suaagencia.com)</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>—</td>
-                <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)' }}>—</td>
                 <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
                 <td style={{ padding: '0.75rem 1rem' }}><Check size={15} style={{ color: 'var(--accent-primary)' }} /></td>
               </tr>

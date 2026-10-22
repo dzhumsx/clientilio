@@ -133,7 +133,7 @@ export class DeliverableService {
             version: { select: { id: true, versionNumber: true } },
           },
         },
-        project: { select: { id: true, name: true, clientId: true } },
+        project: { select: { id: true, name: true, clientId: true, client: { select: { id: true, name: true } } } },
         _count: { select: { versions: true, approvals: true } },
       },
       orderBy: { updatedAt: 'desc' },
@@ -154,7 +154,7 @@ export class DeliverableService {
             file: true,
           },
         },
-        project: { select: { id: true, name: true, clientId: true } },
+        project: { select: { id: true, name: true, clientId: true, client: { select: { id: true, name: true } } } },
       },
     });
     if (!deliverable) throw new NotFoundError('Deliverable');
@@ -338,45 +338,64 @@ export class DeliverableService {
       where: { id: versionId, deliverableId, organizationId: orgId },
       include: {
         deliverable: { select: { status: true } },
-        approvals: { where: { actorId: userId }, select: { id: true }, take: 1 },
+        approvals: { where: { actorId: userId }, take: 1 },
       },
     });
 
     if (!version || !version.deliverable) throw new NotFoundError('Deliverable or Version');
 
-    if (version.deliverable.status !== 'IN_REVIEW') {
-      throw new AppError('Deliverable must be in review to approve', 400);
+    if (version.deliverable.status === 'ARCHIVED') {
+      throw new AppError('Cannot submit approval for an archived deliverable', 400);
     }
 
-    if (version.approvals.length > 0) {
-      throw new AppError('You have already submitted a decision for this version', 409);
+    if (version.deliverable.status === 'DRAFT') {
+      throw new AppError('Cannot submit approval for a draft deliverable. It must be submitted for review first.', 400);
     }
+
+    const existingApproval = version.approvals[0];
 
     const approval = await prisma.$transaction(async (tx) => {
-      const created = await tx.approval.create({
-        data: {
-          organizationId: orgId,
-          deliverableId,
-          versionId,
-          actorId: userId,
-          decision: input.decision,
-          comment: input.comment,
-        },
-        include: {
-          actor: { select: { id: true, name: true, email: true } },
-          version: { select: { id: true, versionNumber: true } },
-        },
-      });
+      let result;
+      if (existingApproval) {
+        result = await tx.approval.update({
+          where: { id: existingApproval.id },
+          data: {
+            decision: input.decision,
+            comment: input.comment,
+            createdAt: new Date(),
+          },
+          include: {
+            actor: { select: { id: true, name: true, email: true } },
+            version: { select: { id: true, versionNumber: true } },
+          },
+        });
+      } else {
+        result = await tx.approval.create({
+          data: {
+            organizationId: orgId,
+            deliverableId,
+            versionId,
+            actorId: userId,
+            decision: input.decision,
+            comment: input.comment,
+          },
+          include: {
+            actor: { select: { id: true, name: true, email: true } },
+            version: { select: { id: true, versionNumber: true } },
+          },
+        });
+      }
 
       // Update deliverable status based on decision
       await tx.deliverable.update({
         where: { id: deliverableId },
         data: {
           status: input.decision === 'APPROVED' ? 'APPROVED' : 'CHANGES_REQUESTED',
+          updatedAt: new Date(),
         },
       });
 
-      return created;
+      return result;
     });
 
     return approval;

@@ -126,7 +126,6 @@ O núcleo deve trabalhar com conceitos genéricos:
 - categoria;
 - evento de auditoria;
 - plano, assinatura e limites;
-- configuração de marca e domínio.
 
 As diferenças de especialidade devem ser configuradas por modelos, categorias, tipos de entregável, tarefas iniciais e campos configuráveis limitados. Evite um construtor de fluxos excessivamente complexo no MVP.
 
@@ -213,7 +212,6 @@ Esses valores são hipóteses a validar, não uma garantia de rentabilidade. Nã
 | Armazenamento | Baixo limite configurável | Maior | Maior | Maior |
 | Logotipo e cores | Não ou básico | Básico | Avançado | Avançado |
 | Marca do SaaS removida | Não | Não, salvo configuração comercial | Sim | Sim |
-| Domínio personalizado | Não | Não | Sim | Sim |
 | Modelos reutilizáveis | Básicos | Sim | Sim | Sim |
 | Membros de equipe | Proprietário e limite mínimo | Configurável | Configurável | Múltiplos |
 | Permissões avançadas | Não | Básicas | Básicas | Sim |
@@ -229,7 +227,6 @@ Crie uma camada central de plano/entitlements para decidir:
 - projetos ativos;
 - armazenamento utilizado;
 - número de membros;
-- domínio personalizado;
 - modelos, automações e relatórios;
 - outros recursos cobrados no futuro.
 
@@ -756,7 +753,6 @@ Adapte nomes e tipos ao ORM e ao banco escolhidos. Esta é uma proposta conceitu
 | `PlanEntitlement` | plan_id, key, value | Limites e recursos configuráveis |
 | `UsageCounter` ou cálculo de uso | organization_id, metric_key, value, period | Escolher cache/contagem apenas se necessário; manter consistência |
 | `BrandSettings` | organization_id, logo_file_id, cores, nome exibido, hide_vendor_brand | Validar valores e acesso |
-| `CustomDomain` | organization_id, hostname, verification_status, verification_token_hash, verified_at | Não marcar ativo antes de verificação e roteamento |
 | `AuditLog` | actor_id, organization_id opcional, action, target, metadata mínima, created_at | Protegido contra alterações não autorizadas |
 
 ### 10.2 Regras de integridade
@@ -874,7 +870,6 @@ Documente os endpoints ou ações equivalentes conforme o framework. A lista aba
 | Comments | listar e criar comentários, editar/remover conforme política |
 | Notifications | listar, marcar como lida, preferências |
 | Billing | obter plano/uso, iniciar checkout, abrir portal de cobrança, receber webhook |
-| Branding | obter/editar marca, verificar domínio quando implementado |
 
 Para cada operação, documente:
 - esquema de entrada e saída;
@@ -1323,7 +1318,6 @@ Ajuste a ordem conforme a stack existente, mas mantenha as dependências e os cr
 - modelos criam projetos independentes do modelo original;
 - configurações de marca são validadas;
 - métricas têm definição documentada;
-- domínio personalizado não é marcado como ativo sem verificação real.
 
 ### Fase 11 — Hardening e lançamento
 

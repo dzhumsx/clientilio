@@ -19,8 +19,6 @@ export interface PlanLimits {
   maxActiveClients: number;
   maxActiveProjects: number;
   maxTeamMembers: number;
-  whiteLabel: boolean;
-  customDomain: boolean;
   removeBranding: boolean;
   advancedPermissions: boolean;
   templates: 'basic' | 'full';
@@ -47,8 +45,6 @@ const FREE_LIMITS: PlanLimits = {
   maxActiveClients: 2,
   maxActiveProjects: 3,
   maxTeamMembers: 2,
-  whiteLabel: false,
-  customDomain: false,
   removeBranding: false,
   advancedPermissions: false,
   templates: 'basic',
@@ -61,8 +57,6 @@ const PRO_LIMITS: PlanLimits = {
   maxActiveClients: 10,
   maxActiveProjects: 25,
   maxTeamMembers: 5,
-  whiteLabel: false,
-  customDomain: false,
   removeBranding: false,
   advancedPermissions: false,
   templates: 'full',
@@ -75,8 +69,6 @@ const BUSINESS_LIMITS: PlanLimits = {
   maxActiveClients: 30,
   maxActiveProjects: 100,
   maxTeamMembers: 15,
-  whiteLabel: true,
-  customDomain: true,
   removeBranding: true,
   advancedPermissions: false,
   templates: 'full',
@@ -89,8 +81,6 @@ const AGENCY_LIMITS: PlanLimits = {
   maxActiveClients: -1, // Ilimitado
   maxActiveProjects: -1,
   maxTeamMembers: -1,
-  whiteLabel: true,
-  customDomain: true,
   removeBranding: true,
   advancedPermissions: true,
   templates: 'full',

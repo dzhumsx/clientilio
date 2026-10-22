@@ -60,8 +60,6 @@ export class BillingService {
         maxActiveClients: limits.maxActiveClients,
         maxActiveProjects: limits.maxActiveProjects,
         maxTeamMembers: limits.maxTeamMembers,
-        whiteLabel: limits.whiteLabel,
-        customDomain: limits.customDomain,
       },
       usage: {
         agencies: ownerData.usage.agencies,

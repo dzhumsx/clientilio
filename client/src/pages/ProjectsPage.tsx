@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw, Search, X } from 'lucide-react';
+import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw, Search, X, Clock, AlertCircle, Play } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
+import { Pagination } from '../components/Pagination';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Project, Client } from '../types';
@@ -16,6 +17,8 @@ export const ProjectsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
 
   // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +40,7 @@ export const ProjectsPage: React.FC = () => {
       // Sequential queries to avoid PGlite lock collision
       const isArchived = filter === 'ARCHIVED';
       const searchParam = query.trim() ? `&search=${encodeURIComponent(query.trim())}` : '';
-      const projRes = await api.get(`/projects?status=${isArchived ? 'ARCHIVED' : 'ALL'}${searchParam}`);
+      const projRes = await api.get(`/projects?status=${isArchived ? 'ARCHIVED' : 'ALL'}&limit=100${searchParam}`);
       setProjects(projRes.data.projects || projRes.data.data || []);
 
       const clientRes = await api.get('/clients?status=ACTIVE');
@@ -54,6 +57,7 @@ export const ProjectsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchData(statusFilter, search);
   }, [currentOrg, statusFilter, search]);
 
@@ -189,15 +193,11 @@ export const ProjectsPage: React.FC = () => {
     return Boolean(nameMatch || descMatch || clientMatch || catMatch);
   });
 
-  const filterTabs = [
-    { id: 'ALL', label: 'TODOS', count: statusFilter === 'ARCHIVED' ? 0 : projects.length },
-    { id: 'IN_PROGRESS', label: 'EM ANDAMENTO', count: projects.filter(p => p.status === 'IN_PROGRESS').length },
-    { id: 'REVIEW', label: 'EM REVISÃO', count: projects.filter(p => p.status === 'REVIEW').length },
-    { id: 'PLANNING', label: 'PLANEJAMENTO', count: projects.filter(p => p.status === 'PLANNING').length },
-    { id: 'COMPLETED', label: 'CONCLUÍDOS', count: projects.filter(p => p.status === 'COMPLETED').length },
-    { id: 'ON_HOLD', label: 'PAUSADOS', count: projects.filter(p => p.status === 'ON_HOLD').length },
-    { id: 'ARCHIVED', label: 'ARQUIVADOS', count: statusFilter === 'ARCHIVED' ? projects.length : 0 },
-  ];
+  // Metrics
+  const totalProjectsCount = statusFilter === 'ARCHIVED' ? 0 : projects.length;
+  const inProgressCount = projects.filter((p) => p.status === 'IN_PROGRESS').length;
+  const reviewCount = projects.filter((p) => p.status === 'REVIEW').length;
+  const completedCount = projects.filter((p) => p.status === 'COMPLETED').length;
 
   return (
     <div>
@@ -216,62 +216,169 @@ export const ProjectsPage: React.FC = () => {
       />
 
       <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Segmented Filter Bar & Search Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        {/* KPI Cards Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          {/* Card: Total de Projetos */}
           <div
+            onClick={() => {
+              setStatusFilter('ALL');
+              setCurrentPage(1);
+            }}
             style={{
-              display: 'inline-flex',
-              padding: '3px',
-              background: 'var(--bg-subtle)',
-              borderRadius: '6px',
-              border: '1px solid var(--border-hairline)',
-              gap: '2px',
-              overflowX: 'auto',
-              maxWidth: '100%',
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'ALL'
+                ? '1px solid var(--accent-primary)'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'ALL' ? '0 0 0 1px var(--accent-primary)' : 'none',
             }}
           >
-            {filterTabs.map((tab) => {
-              const active = statusFilter === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setStatusFilter(tab.id)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '0.6875rem',
-                    fontWeight: active ? 600 : 500,
-                    fontFamily: 'var(--font-mono)',
-                    letterSpacing: '0.06em',
-                    border: 'none',
-                    borderRadius: '4px',
-                    background: active ? 'var(--bg-surface)' : 'transparent',
-                    color: active ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                    cursor: 'pointer',
-                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>{tab.label}</span>
-                  <span
-                    style={{
-                      padding: '1px 5px',
-                      borderRadius: '3px',
-                      fontSize: '0.625rem',
-                      background: active ? 'var(--accent-subtle)' : 'transparent',
-                      color: active ? 'var(--accent-primary)' : 'var(--text-tertiary)',
-                    }}
-                  >
-                    {tab.count}
-                  </span>
-                </button>
-              );
-            })}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total de Projetos
+              </span>
+              <FolderKanban size={14} style={{ color: 'var(--text-tertiary)' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+              {totalProjectsCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Campanhas ativas no workspace
+            </span>
           </div>
 
+          {/* Card: Em Andamento */}
+          <div
+            onClick={() => {
+              setStatusFilter('IN_PROGRESS');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'IN_PROGRESS'
+                ? '1px solid #3b82f6'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'IN_PROGRESS' ? '0 0 0 1px #3b82f6' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#3b82f6', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Em Andamento
+              </span>
+              <Play size={14} style={{ color: '#3b82f6' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#3b82f6', letterSpacing: '-0.03em' }}>
+              {inProgressCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Produção ativa da equipe
+            </span>
+          </div>
+
+          {/* Card: Em Revisão */}
+          <div
+            onClick={() => {
+              setStatusFilter('REVIEW');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'REVIEW'
+                ? '1px solid #f59e0b'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'REVIEW' ? '0 0 0 1px #f59e0b' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#f59e0b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Em Revisão
+              </span>
+              <Clock size={14} style={{ color: '#f59e0b' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#f59e0b', letterSpacing: '-0.03em' }}>
+              {reviewCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Aguardando validação do cliente
+            </span>
+          </div>
+
+          {/* Card: Concluídos */}
+          <div
+            onClick={() => {
+              setStatusFilter('COMPLETED');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'COMPLETED'
+                ? '1px solid #10b981'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'COMPLETED' ? '0 0 0 1px #10b981' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#10b981', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Concluídos
+              </span>
+              <CheckCircle2 size={14} style={{ color: '#10b981' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#10b981', letterSpacing: '-0.03em' }}>
+              {completedCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Campanhas finalizadas
+            </span>
+          </div>
+        </div>
+
+        {/* Cohesive Toolbar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            padding: '0.875rem 1.25rem',
+            background: 'var(--bg-subtle)',
+            borderRadius: '6px',
+            border: '1px solid var(--border-hairline)',
+            flexWrap: 'wrap',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <div style={{ position: 'relative', width: '280px' }}>
@@ -318,6 +425,30 @@ export const ProjectsPage: React.FC = () => {
               )}
             </div>
 
+            {/* Status Select Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{
+                width: 'auto',
+                minWidth: '170px',
+                height: '34px',
+                fontSize: '0.8125rem',
+                padding: '0 0.75rem',
+              }}
+            >
+              <option value="ALL">Todos os Projetos</option>
+              <option value="IN_PROGRESS">Em Andamento</option>
+              <option value="REVIEW">Em Revisão</option>
+              <option value="PLANNING">Planejamento</option>
+              <option value="ON_HOLD">Pausados</option>
+              <option value="COMPLETED">Concluídos</option>
+              <option value="ARCHIVED">Arquivados</option>
+            </select>
+
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
@@ -329,6 +460,55 @@ export const ProjectsPage: React.FC = () => {
             >
               TOTAL: {filteredProjects.length} {filteredProjects.length === 1 ? 'PROJETO' : 'PROJETOS'}
             </span>
+          </div>
+
+          {/* Active / Archived Toggle */}
+          <div
+            style={{
+              display: 'inline-flex',
+              backgroundColor: 'var(--bg-card)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: 'var(--radius-button)',
+              padding: '2px',
+              gap: '2px',
+            }}
+          >
+            <button
+              onClick={() => {
+                setStatusFilter('ALL');
+                setCurrentPage(1);
+              }}
+              className="btn btn-sm"
+              style={{
+                backgroundColor: statusFilter !== 'ARCHIVED' ? 'var(--bg-surface)' : 'transparent',
+                color: statusFilter !== 'ARCHIVED' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                boxShadow: statusFilter !== 'ARCHIVED' ? 'var(--shadow-subtle)' : 'none',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 500,
+                padding: '0.25rem 0.65rem',
+              }}
+            >
+              Ativos ({totalProjectsCount})
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('ARCHIVED');
+                setCurrentPage(1);
+              }}
+              className="btn btn-sm"
+              style={{
+                backgroundColor: statusFilter === 'ARCHIVED' ? 'var(--bg-surface)' : 'transparent',
+                color: statusFilter === 'ARCHIVED' ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                boxShadow: statusFilter === 'ARCHIVED' ? 'var(--shadow-subtle)' : 'none',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 500,
+                padding: '0.25rem 0.65rem',
+              }}
+            >
+              Arquivados
+            </button>
           </div>
         </div>
 
@@ -389,8 +569,9 @@ export const ProjectsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
-            {filteredProjects.map((p) => (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+              {filteredProjects.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((p) => (
               <div
                 key={p.id}
                 className="card card-interactive"
@@ -526,7 +707,22 @@ export const ProjectsPage: React.FC = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredProjects.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(val) => {
+                setItemsPerPage(val);
+                setCurrentPage(1);
+              }}
+              itemsPerPageOptions={[6, 12, 24]}
+              itemLabel="projetos"
+              hideIfSinglePage={true}
+            />
+          </>
         )}
       </div>
 

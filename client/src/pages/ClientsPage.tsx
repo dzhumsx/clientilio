@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Search, Building2, Mail, Archive, RefreshCw, FolderKanban, Edit2, Trash2, X, Users, CheckCircle2, Clock } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
+import { Pagination } from '../components/Pagination';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Client } from '../types';
@@ -15,6 +16,9 @@ export const ClientsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ACTIVE' | 'ARCHIVED'>('ACTIVE');
+  const [tabFilter, setTabFilter] = useState<'ALL' | 'WITH_PROJECTS' | 'WITHOUT_PROJECTS' | 'ARCHIVED'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
 
   // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,7 +34,7 @@ export const ClientsPage: React.FC = () => {
     if (!currentOrg) return;
     setLoading(true);
     try {
-      const { data } = await api.get(`/clients?status=${statusFilter}${search ? `&search=${encodeURIComponent(search)}` : ''}`);
+      const { data } = await api.get('/clients?status=ALL&limit=100');
       setClients(data.clients || data.data || []);
     } catch (err) {
       console.error('Failed to fetch clients:', err);
@@ -40,8 +44,9 @@ export const ClientsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    setCurrentPage(1);
     fetchClients();
-  }, [currentOrg, statusFilter, search]);
+  }, [currentOrg]);
 
   const handleOpenCreate = () => {
     setEditingClient(null);
@@ -153,6 +158,33 @@ export const ClientsPage: React.FC = () => {
     }
   };
 
+  // Metrics
+  const activeClients = clients.filter((c) => c.status === 'ACTIVE');
+  const archivedClients = clients.filter((c) => c.status === 'ARCHIVED');
+  const totalActiveCount = activeClients.length;
+  const withProjectsCount = activeClients.filter((c) => (c._count?.projects || 0) > 0).length;
+  const withoutProjectsCount = activeClients.filter((c) => (c._count?.projects || 0) === 0).length;
+  const archivedCount = archivedClients.length;
+
+  // Filtered List
+  const filteredClients = clients.filter((c) => {
+    if (statusFilter === 'ARCHIVED' || tabFilter === 'ARCHIVED') {
+      if (c.status !== 'ARCHIVED') return false;
+    } else {
+      if (c.status !== 'ACTIVE') return false;
+      if (tabFilter === 'WITH_PROJECTS' && (c._count?.projects || 0) === 0) return false;
+      if (tabFilter === 'WITHOUT_PROJECTS' && (c._count?.projects || 0) > 0) return false;
+    }
+
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return Boolean(
+      c.name?.toLowerCase().includes(q) ||
+      c.company?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
       <Navbar
@@ -166,23 +198,194 @@ export const ClientsPage: React.FC = () => {
         }
       />
 
-      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1280px' }}>
-        {/* Filters & Search Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+      <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+        {/* KPI Cards Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          {/* Card: Total de Clientes */}
+          <div
+            onClick={() => {
+              setStatusFilter('ACTIVE');
+              setTabFilter('ALL');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'ACTIVE' && tabFilter === 'ALL'
+                ? '1px solid var(--accent-primary)'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'ACTIVE' && tabFilter === 'ALL' ? '0 0 0 1px var(--accent-primary)' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total de Clientes
+              </span>
+              <Users size={14} style={{ color: 'var(--text-tertiary)' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+              {totalActiveCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Contas ativas no portal
+            </span>
+          </div>
+
+          {/* Card: Com Projetos Ativos */}
+          <div
+            onClick={() => {
+              setStatusFilter('ACTIVE');
+              setTabFilter('WITH_PROJECTS');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'ACTIVE' && tabFilter === 'WITH_PROJECTS'
+                ? '1px solid #3b82f6'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'ACTIVE' && tabFilter === 'WITH_PROJECTS' ? '0 0 0 1px #3b82f6' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#3b82f6', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Com Demandas Ativas
+              </span>
+              <FolderKanban size={14} style={{ color: '#3b82f6' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#3b82f6', letterSpacing: '-0.03em' }}>
+              {withProjectsCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Projetos em produção
+            </span>
+          </div>
+
+          {/* Card: Sem Projetos */}
+          <div
+            onClick={() => {
+              setStatusFilter('ACTIVE');
+              setTabFilter('WITHOUT_PROJECTS');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'ACTIVE' && tabFilter === 'WITHOUT_PROJECTS'
+                ? '1px solid #f59e0b'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'ACTIVE' && tabFilter === 'WITHOUT_PROJECTS' ? '0 0 0 1px #f59e0b' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#f59e0b', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Sem Demandas Ativas
+              </span>
+              <Clock size={14} style={{ color: '#f59e0b' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#f59e0b', letterSpacing: '-0.03em' }}>
+              {withoutProjectsCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Oportunidades de contato
+            </span>
+          </div>
+
+          {/* Card: Clientes Arquivados */}
+          <div
+            onClick={() => {
+              setStatusFilter('ARCHIVED');
+              setTabFilter('ARCHIVED');
+              setCurrentPage(1);
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: statusFilter === 'ARCHIVED'
+                ? '1px solid #a1a1aa'
+                : '1px solid var(--border-hairline)',
+              borderRadius: '8px',
+              padding: '1.125rem 1.25rem',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.375rem',
+              transition: 'all 0.15s ease',
+              boxShadow: statusFilter === 'ARCHIVED' ? '0 0 0 1px #a1a1aa' : 'none',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.6875rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Clientes Arquivados
+              </span>
+              <Archive size={14} style={{ color: '#a1a1aa' }} />
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 600, fontFamily: 'var(--font-mono)', color: '#a1a1aa', letterSpacing: '-0.03em' }}>
+              {archivedCount}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              Contas inativas ou arquivadas
+            </span>
+          </div>
+        </div>
+
+        {/* Cohesive Toolbar */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            padding: '0.875rem 1.25rem',
+            background: 'var(--bg-subtle)',
+            borderRadius: '6px',
+            border: '1px solid var(--border-hairline)',
+            flexWrap: 'wrap',
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', width: '280px' }}>
               <input
                 type="text"
-                placeholder="Buscar por nome ou empresa..."
+                placeholder="Buscar por nome, empresa ou email..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{ paddingLeft: '2.2rem', paddingRight: search ? '2rem' : '0.75rem', fontSize: '13px', height: '34px' }}
               />
               <Search size={14} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
               {search && (
                 <button
                   type="button"
-                  onClick={() => setSearch('')}
+                  onClick={() => {
+                    setSearch('');
+                    setCurrentPage(1);
+                  }}
                   style={{
                     position: 'absolute',
                     right: '0.6rem',
@@ -213,14 +416,14 @@ export const ClientsPage: React.FC = () => {
                 whiteSpace: 'nowrap',
               }}
             >
-              TOTAL: {clients.length} {clients.length === 1 ? 'CLIENTE' : 'CLIENTES'} {search ? 'ENCONTRADOS' : ''}
+              TOTAL: {filteredClients.length} {filteredClients.length === 1 ? 'CLIENTE' : 'CLIENTES'}
             </span>
           </div>
 
           <div
             style={{
               display: 'inline-flex',
-              backgroundColor: 'var(--bg-subtle)',
+              backgroundColor: 'var(--bg-card)',
               border: '1px solid var(--border-hairline)',
               borderRadius: 'var(--radius-button)',
               padding: '2px',
@@ -228,10 +431,14 @@ export const ClientsPage: React.FC = () => {
             }}
           >
             <button
-              onClick={() => setStatusFilter('ACTIVE')}
+              onClick={() => {
+                setStatusFilter('ACTIVE');
+                if (tabFilter === 'ARCHIVED') setTabFilter('ALL');
+                setCurrentPage(1);
+              }}
               className="btn btn-sm"
               style={{
-                backgroundColor: statusFilter === 'ACTIVE' ? 'var(--bg-card)' : 'transparent',
+                backgroundColor: statusFilter === 'ACTIVE' ? 'var(--bg-surface)' : 'transparent',
                 color: statusFilter === 'ACTIVE' ? 'var(--text-primary)' : 'var(--text-tertiary)',
                 boxShadow: statusFilter === 'ACTIVE' ? 'var(--shadow-subtle)' : 'none',
                 border: 'none',
@@ -240,13 +447,17 @@ export const ClientsPage: React.FC = () => {
                 padding: '0.25rem 0.65rem',
               }}
             >
-              Ativos
+              Ativos ({totalActiveCount})
             </button>
             <button
-              onClick={() => setStatusFilter('ARCHIVED')}
+              onClick={() => {
+                setStatusFilter('ARCHIVED');
+                setTabFilter('ARCHIVED');
+                setCurrentPage(1);
+              }}
               className="btn btn-sm"
               style={{
-                backgroundColor: statusFilter === 'ARCHIVED' ? 'var(--bg-card)' : 'transparent',
+                backgroundColor: statusFilter === 'ARCHIVED' ? 'var(--bg-surface)' : 'transparent',
                 color: statusFilter === 'ARCHIVED' ? 'var(--text-primary)' : 'var(--text-tertiary)',
                 boxShadow: statusFilter === 'ARCHIVED' ? 'var(--shadow-subtle)' : 'none',
                 border: 'none',
@@ -255,7 +466,7 @@ export const ClientsPage: React.FC = () => {
                 padding: '0.25rem 0.65rem',
               }}
             >
-              Arquivados
+              Arquivados ({archivedCount})
             </button>
           </div>
         </div>
@@ -265,7 +476,7 @@ export const ClientsPage: React.FC = () => {
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
             Carregando registros...
           </div>
-        ) : clients.length === 0 ? (
+        ) : filteredClients.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', color: 'var(--text-tertiary)' }}>
             <Building2 size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
             <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
@@ -286,65 +497,89 @@ export const ClientsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-            {clients.map((c) => (
-              <div key={c.id} className="card card-interactive" style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-                  <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>{c.name}</h3>
-                    {c.company && (
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
-                        <Building2 size={12} style={{ color: 'var(--text-tertiary)' }} />
-                        <span>{c.company}</span>
-                      </p>
-                    )}
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+              {filteredClients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((c) => (
+                <div key={c.id} className="card card-interactive" style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
+                    <div>
+                      <h3 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>{c.name}</h3>
+                      {c.company && (
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                          <Building2 size={12} style={{ color: 'var(--text-tertiary)' }} />
+                          <span>{c.company}</span>
+                        </p>
+                      )}
+                    </div>
+                    <StatusBadge status={c.status} />
                   </div>
-                  <StatusBadge status={c.status} />
+
+                  {c.email && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                      <Mail size={12} />
+                      <span>{c.email}</span>
+                    </p>
+                  )}
+
+                  {c.notes && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '0.5rem 0.65rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.85rem' }}>
+                      {c.notes}
+                    </p>
+                  )}
+
+                  <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
+                      <FolderKanban size={13} />
+                      <span>{c._count?.projects || 0} PROJETOS / CAMPANHAS</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      <button
+                        onClick={() => handleOpenEdit(c)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
+                        title="Editar cliente"
+                      >
+                        <Edit2 size={12} />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleArchiveToggle(c)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
+                        title={c.status === 'ACTIVE' ? 'Arquivar cliente' : 'Reativar cliente'}
+                      >
+                        {c.status === 'ACTIVE' ? <Archive size={12} /> : <RefreshCw size={12} />}
+                        <span>{c.status === 'ACTIVE' ? 'Arquivar' : 'Reativar'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClient(c)}
+                        className="btn btn-ghost btn-sm"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px', color: 'var(--color-danger)' }}
+                        title="Excluir cliente permanentemente"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ))}
+            </div>
 
-                {c.email && (
-                  <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.65rem', fontFamily: 'var(--font-mono)' }}>
-                    <Mail size={12} />
-                    <span>{c.email}</span>
-                  </p>
-                )}
-
-                {c.notes && (
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-subtle)', padding: '0.5rem 0.65rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.85rem' }}>
-                    {c.notes}
-                  </p>
-                )}
-
-                <div style={{ marginTop: 'auto', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
-                    <FolderKanban size={13} />
-                    <span>{c._count?.projects || 0} PROJETOS / CAMPANHAS</span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.35rem' }}>
-                    <button
-                      onClick={() => handleOpenEdit(c)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
-                      title="Editar cliente"
-                    >
-                      <Edit2 size={12} />
-                      <span>Editar</span>
-                    </button>
-                    <button
-                      onClick={() => handleArchiveToggle(c)}
-                      className="btn btn-ghost btn-sm"
-                      style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
-                      title={c.status === 'ACTIVE' ? 'Arquivar cliente' : 'Reativar cliente'}
-                    >
-                      {c.status === 'ACTIVE' ? <Archive size={12} /> : <RefreshCw size={12} />}
-                      <span>{c.status === 'ACTIVE' ? 'Arquivar' : 'Reativar'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+            <Pagination
+              currentPage={currentPage}
+              totalItems={filteredClients.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={(val) => {
+                setItemsPerPage(val);
+                setCurrentPage(1);
+              }}
+              itemsPerPageOptions={[6, 12, 24]}
+              itemLabel="clientes"
+              hideIfSinglePage={true}
+            />
+          </>
         )}
       </div>
 

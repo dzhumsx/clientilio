@@ -83,6 +83,7 @@ export interface DeliverableVersion {
   title?: string;
   notes?: string;
   createdAt: string;
+  approvals?: Approval[];
 }
 
 export interface Approval {
@@ -94,6 +95,7 @@ export interface Approval {
   comment?: string;
   createdAt: string;
   actor?: {
+    id?: string;
     name: string;
     email: string;
   };
@@ -109,12 +111,18 @@ export interface Deliverable {
   projectId: string;
   title: string;
   description?: string;
+  type?: string;
   status: 'DRAFT' | 'READY_FOR_REVIEW' | 'IN_REVIEW' | 'CHANGES_REQUESTED' | 'APPROVED' | 'ARCHIVED';
   clientVisible: boolean;
   currentVersionNumber: number;
   project?: {
     id: string;
     name: string;
+    clientId?: string;
+    client?: {
+      id: string;
+      name: string;
+    };
   };
   versions?: DeliverableVersion[];
   approvals?: Approval[];
@@ -127,8 +135,6 @@ export interface PlanLimits {
   maxActiveClients: number;
   maxActiveProjects: number;
   maxTeamMembers: number;
-  whiteLabel: boolean;
-  customDomain: boolean;
 }
 
 export type PlanInterval = 'monthly' | 'yearly';

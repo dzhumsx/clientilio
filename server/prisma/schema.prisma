@@ -93,7 +93,6 @@ model Organization {
   notifications   Notification[]
   subscription    Subscription?
   brandSettings   BrandSettings?
-  customDomain    CustomDomain?
   auditLogs       AuditLog[]
   templates       ProjectTemplate[]
 
@@ -583,20 +582,6 @@ model BrandSettings {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("brand_settings")
-}
-
-model CustomDomain {
-  id                    String    @id @default(uuid())
-  organizationId        String    @unique
-  hostname              String    @unique
-  verificationStatus    String    @default("pending")
-  verificationTokenHash String?
-  verifiedAt            DateTime?
-  createdAt             DateTime  @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@map("custom_domains")
 }
 
 // ============================================
