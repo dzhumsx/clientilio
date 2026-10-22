@@ -47,6 +47,9 @@ export const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/portal" element={<ClientPortalPage />} />
+          <Route path="/portal/:token" element={<ClientPortalPage />} />
+          <Route path="/portal/project/:token" element={<ClientPortalPage />} />
+          <Route path="/p/:token" element={<ClientPortalPage />} />
           <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
           {/* Protected Agency Dashboard Routes */}

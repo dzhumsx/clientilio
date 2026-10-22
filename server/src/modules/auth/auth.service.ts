@@ -104,7 +104,11 @@ export class AuthService {
       allInvitesToClaim.push(tokenInvite);
     }
 
-    // Create user, organization, owner membership, accept invitations and refresh token in a single transaction
+    const hasInvites = allInvitesToClaim.length > 0;
+    const wantsAgency = Boolean(input.companyName && input.companyName.trim().length > 0) || input.createAgency === true;
+    const shouldCreateOrg = !hasInvites || wantsAgency;
+
+    // Create user, organization (if needed), owner membership, accept invitations and refresh token in a single transaction
     const { user, organization, joinedOrgs } = await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
@@ -122,21 +126,24 @@ export class AuthService {
         select: { id: true, name: true, email: true, avatarUrl: true },
       });
 
-      const newOrg = await tx.organization.create({
-        data: {
-          name: orgName,
-          slug: orgSlug,
-          ownerId: newUser.id,
-          planId: 'free',
-          memberships: {
-            create: {
-              userId: newUser.id,
-              role: 'OWNER',
+      let newOrg: { id: string; name: string; slug: string; ownerId: string; planId: string } | null = null;
+      if (shouldCreateOrg) {
+        newOrg = await tx.organization.create({
+          data: {
+            name: orgName,
+            slug: orgSlug,
+            ownerId: newUser.id,
+            planId: 'free',
+            memberships: {
+              create: {
+                userId: newUser.id,
+                role: 'OWNER',
+              },
             },
           },
-        },
-        select: { id: true, name: true, slug: true, ownerId: true, planId: true },
-      });
+          select: { id: true, name: true, slug: true, ownerId: true, planId: true },
+        });
+      }
 
       // Claim and accept all invitations for this user
       const claimedOrgs: Array<{
@@ -185,10 +192,7 @@ export class AuthService {
     // If invited to agencies, prioritize the invited agency as active first
     const orgList = [
       ...joinedOrgs,
-      {
-        ...organization,
-        role: 'OWNER',
-      },
+      ...(organization ? [{ ...organization, role: 'OWNER' }] : []),
     ];
 
     return {

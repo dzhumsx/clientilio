@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw, Search, X, Clock, AlertCircle, Play } from 'lucide-react';
+import { Plus, Calendar, DollarSign, FolderKanban, CheckCircle2, Edit2, Layers, Trash2, Archive, RefreshCw, Search, X, Clock, AlertCircle, Play, Share2, ExternalLink } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
@@ -690,17 +690,41 @@ export const ProjectsPage: React.FC = () => {
                     <span>{p._count?.tasks || 0} TAREFAS</span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const portalUrl = `${window.location.origin}/portal/${p.id}`;
+                        navigator.clipboard.writeText(portalUrl);
+                        toast.success(`Link do portal (${p.name}) copiado!`);
+                      }}
+                      className="btn btn-outline btn-sm"
+                      title="Copiar link do portal do cliente (acesso sem senha)"
+                      style={{ gap: '4px', fontSize: '11px', height: '28px', padding: '0 7px' }}
+                    >
+                      <Share2 size={12} />
+                      <span>Link Portal</span>
+                    </button>
+                    <a
+                      href={`/portal/${p.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm"
+                      title="Abrir portal do cliente em nova aba"
+                      style={{ height: '28px', padding: '0 7px' }}
+                    >
+                      <ExternalLink size={12} />
+                    </a>
                     <button
                       onClick={() => handleOpenEdit(p)}
                       className="btn btn-outline btn-sm"
                       title="Editar projeto"
+                      style={{ height: '28px', padding: '0 7px' }}
                     >
-                      <Edit2 size={13} />
-                      <span>Editar</span>
+                      <Edit2 size={12} />
                     </button>
-                    <Link to="/dashboard/deliverables" className="btn btn-secondary btn-sm">
-                      <CheckCircle2 size={13} />
+                    <Link to="/dashboard/deliverables" className="btn btn-secondary btn-sm" style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}>
+                      <CheckCircle2 size={12} />
                       <span>Entregáveis</span>
                     </Link>
                   </div>

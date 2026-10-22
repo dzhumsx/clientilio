@@ -5,6 +5,7 @@ export const registerSchema = z.object({
   email: z.string().email('Invalid email address').transform((v) => v.toLowerCase().trim()),
   companyName: z.string().optional(),
   inviteToken: z.string().optional(),
+  createAgency: z.boolean().optional(),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')

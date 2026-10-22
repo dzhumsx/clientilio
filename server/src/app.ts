@@ -19,6 +19,7 @@ import projectsRouter from './modules/projects/projects.routes';
 import deliverablesRouter from './modules/deliverables/deliverables.routes';
 import { billingRouter, stripeWebhookRouter } from './modules/billing/billing.routes';
 import monitoringRouter from './modules/monitoring/monitoring.routes';
+import portalRouter from './modules/portal/portal.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -127,6 +128,7 @@ export function createApp(): Application {
   app.use('/api', deliverablesRouter);
   app.use('/api/billing', billingRouter);
   app.use('/api/monitoring', monitoringRouter);
+  app.use('/api/portal', portalRouter);
 
   // Static Frontend Serving (Production / Railway Deployment)
   const clientDist = path.resolve(__dirname, '../../client/dist');

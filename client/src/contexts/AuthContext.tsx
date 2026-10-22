@@ -11,7 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, companyName?: string, inviteToken?: string) => Promise<void>;
+  register: (name: string, email: string, password: string, companyName?: string, inviteToken?: string, createAgency?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   setCurrentOrg: (org: Organization) => void;
   switchOrganization: (org: Organization) => void;
@@ -168,13 +168,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchPendingInvitations();
   };
 
-  const register = async (name: string, email: string, password: string, companyName?: string, inviteToken?: string) => {
+  const register = async (name: string, email: string, password: string, companyName?: string, inviteToken?: string, createAgency?: boolean) => {
     const { data } = await api.post('/auth/register', {
       name,
       email,
       password,
       companyName,
       inviteToken,
+      createAgency,
     });
     const accessToken = data.tokens?.accessToken || data.accessToken;
     const refreshToken = data.tokens?.refreshToken || data.refreshToken;
