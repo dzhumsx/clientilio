@@ -4,9 +4,8 @@ import { NotFoundError, AppError } from '../../lib/errors';
 /**
  * Builds the query filter for resolving a project portal by token or ID.
  * Supports:
- * - Direct Base64 project ID (e.g. 'prj_7xK2m9Pq')
- * - Raw 8-character Base64 token (e.g. '7xK2m9Pq' -> matches 'prj_7xK2m9Pq')
- * - Full legacy UUID or 8-char UUID prefix
+ * - Direct Base64 project ID (e.g. 'p7xK2m9Pq')
+ * - Raw 8-character Base64 token (e.g. '7xK2m9Pq' -> matches 'p7xK2m9Pq')
  */
 function buildProjectPortalWhere(token: string) {
   const clean = token.trim();
@@ -14,11 +13,8 @@ function buildProjectPortalWhere(token: string) {
     { id: clean },
     { id: { startsWith: clean } },
   ];
-  if (!clean.startsWith('p_')) {
-    conditions.push({ id: `p_${clean}` });
-  }
-  if (!clean.startsWith('prj_')) {
-    conditions.push({ id: `prj_${clean}` });
+  if (!clean.startsWith('p')) {
+    conditions.push({ id: `p${clean}` });
   }
   return { OR: conditions };
 }

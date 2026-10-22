@@ -694,9 +694,7 @@ export const ProjectsPage: React.FC = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const isPrefixed = p.id.startsWith('p_') || p.id.startsWith('prj_');
-                        const portalToken = isPrefixed ? p.id : (p.id.includes('-') ? p.id.split('-')[0] : p.id);
-                        const portalUrl = `${window.location.origin}/p/${portalToken}`;
+                        const portalUrl = `${window.location.origin}/p/${p.id}`;
                         navigator.clipboard.writeText(portalUrl);
                         toast.success(`Link do portal (${portalUrl}) copiado!`);
                       }}
@@ -708,7 +706,7 @@ export const ProjectsPage: React.FC = () => {
                       <span>Link Portal</span>
                     </button>
                     <a
-                      href={`/p/${p.id.startsWith('p_') || p.id.startsWith('prj_') ? p.id : (p.id.includes('-') ? p.id.split('-')[0] : p.id)}`}
+                      href={`/p/${p.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-outline btn-sm"

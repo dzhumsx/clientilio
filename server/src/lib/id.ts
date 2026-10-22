@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 export type SingleLetterPrefix = 'u' | 'o' | 'c' | 'p' | 'd';
-export type IdPrefix = SingleLetterPrefix | 'usr' | 'org' | 'cli' | 'prj' | 'del' | string;
+export type IdPrefix = SingleLetterPrefix | string;
 
 /**
  * Mapping of prefix to Base64 digit length:
@@ -13,16 +13,10 @@ export type IdPrefix = SingleLetterPrefix | 'usr' | 'org' | 'cli' | 'prj' | 'del
  */
 const DEFAULT_PREFIX_LENGTHS: Record<string, number> = {
   u: 6,
-  usr: 6,
   o: 6,
-  org: 6,
-  a: 6,
   c: 6,
-  cli: 6,
   p: 8,
-  prj: 8,
   d: 8,
-  del: 8,
 };
 
 /**
@@ -37,20 +31,26 @@ export function generateRawBase64Id(digits: number = 8): string {
 }
 
 /**
- * Generates a Base64 (URL-safe) ID with a single-letter prefix.
+ * Generates a Base64 (URL-safe) ID with a single-letter prefix without underscore.
  * Lengths by entity:
- *  - u_xxxxxx (User: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
- *  - o_xxxxxx (Agency: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
- *  - c_xxxxxx (Client: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
- *  - p_xxxxxxxx (Project: 1 letter + 8 Base64 digits) - ~281.4 trillion combinations
- *  - d_xxxxxxxx (Deliverable: 1 letter + 8 Base64 digits) - ~281.4 trillion combinations
+ *  - uxxxxxx (User: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
+ *  - oxxxxxx (Agency: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
+ *  - cxxxxxx (Client: 1 letter + 6 Base64 digits) - ~68.7 billion combinations
+ *  - pxxxxxxxx (Project: 1 letter + 8 Base64 digits) - ~281.4 trillion combinations
+ *  - dxxxxxxxx (Deliverable: 1 letter + 8 Base64 digits) - ~281.4 trillion combinations
  */
 export function generateBase64Id(prefix: IdPrefix, customDigits?: number): string {
   const digits = customDigits ?? DEFAULT_PREFIX_LENGTHS[prefix] ?? 8;
   const base64Digits = generateRawBase64Id(digits);
-  return `${prefix}_${base64Digits}`;
+  return `${prefix}${base64Digits}`;
 }
 
 export function isPrefixedId(id: string, prefix: IdPrefix): boolean {
-  return typeof id === 'string' && id.startsWith(`${prefix}_`);
+  return typeof id === 'string' && id.startsWith(prefix);
+}
+
+export function stripPrefix(id: string, prefix: IdPrefix): string {
+  if (typeof id !== 'string') return '';
+  if (id.startsWith(prefix)) return id.slice(prefix.length);
+  return id;
 }

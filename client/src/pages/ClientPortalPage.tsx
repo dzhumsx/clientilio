@@ -274,11 +274,7 @@ export const ClientPortalPage: React.FC = () => {
   };
 
   const handleCopyPortalLink = () => {
-    const rawId = portalData?.project?.id || effectiveToken || '';
-    const isPrefixed = rawId.startsWith('p_') || rawId.startsWith('prj_');
-    const cleanToken = isPrefixed
-      ? rawId
-      : (rawId.includes('-') ? rawId.split('-')[0] : rawId);
+    const cleanToken = portalData?.project?.id || effectiveToken || '';
     const portalUrl = cleanToken ? `${window.location.origin}/p/${cleanToken}` : window.location.href;
     navigator.clipboard.writeText(portalUrl);
     setCopiedLink(true);
