@@ -185,7 +185,7 @@ export function requireRole(...roles: MemberRole[]) {
     }
 
     if (!req.memberRole || !roles.includes(req.memberRole)) {
-      next(new ForbiddenError('Insufficient role'));
+      next(new ForbiddenError('Permissão insuficiente. Esta ação requer privilégios de Administrador ou Proprietário.'));
       return;
     }
     next();

@@ -1,12 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ClientService } from './clients.service';
 import { createClientSchema, updateClientSchema, listClientsSchema } from './clients.validation';
-import { authenticate, resolveOrganization, requireTeamMember } from '../../middleware/auth';
+import { authenticate, resolveOrganization, requireTeamMember, requireRole } from '../../middleware/auth';
+import { MemberRole } from '@prisma/client';
 
 const router = Router();
 const clientService = new ClientService();
 
 const orgMiddleware = [authenticate, resolveOrganization(), requireTeamMember];
+const adminOnlyMiddleware = [authenticate, resolveOrganization(), requireRole(MemberRole.OWNER, MemberRole.ADMIN)];
 
 // GET /api/clients
 router.get('/', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
@@ -20,7 +22,7 @@ router.get('/', ...orgMiddleware, async (req: Request, res: Response, next: Next
 });
 
 // POST /api/clients
-router.post('/', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = createClientSchema.parse(req.body);
     const client = await clientService.create(req.organizationId!, data, req.user!.userId);
@@ -41,7 +43,7 @@ router.get('/:id', ...orgMiddleware, async (req: Request, res: Response, next: N
 });
 
 // PUT /api/clients/:id
-router.put('/:id', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = updateClientSchema.parse(req.body);
     const client = await clientService.update(req.organizationId!, req.params.id as string, data);
@@ -52,7 +54,7 @@ router.put('/:id', ...orgMiddleware, async (req: Request, res: Response, next: N
 });
 
 // POST /api/clients/:id/archive
-router.post('/:id/archive', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/archive', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const client = await clientService.archive(req.organizationId!, req.params.id as string);
     res.json(client);
@@ -62,7 +64,7 @@ router.post('/:id/archive', ...orgMiddleware, async (req: Request, res: Response
 });
 
 // POST /api/clients/:id/reactivate
-router.post('/:id/reactivate', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/reactivate', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const client = await clientService.reactivate(req.organizationId!, req.params.id as string);
     res.json(client);
@@ -72,7 +74,7 @@ router.post('/:id/reactivate', ...orgMiddleware, async (req: Request, res: Respo
 });
 
 // DELETE /api/clients/:id
-router.delete('/:id', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:id', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     await clientService.delete(req.organizationId!, req.params.id as string);
     res.json({ message: 'Client permanently deleted' });

@@ -48,7 +48,13 @@ export const ClientsPage: React.FC = () => {
     fetchClients();
   }, [currentOrg]);
 
+  const isOwnerOrAdmin = currentOrg?.role === 'OWNER' || currentOrg?.role === 'ADMIN';
+
   const handleOpenCreate = () => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem cadastrar clientes.');
+      return;
+    }
     setEditingClient(null);
     setName('');
     setCompany('');
@@ -59,6 +65,10 @@ export const ClientsPage: React.FC = () => {
   };
 
   const handleOpenEdit = (c: Client) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem editar clientes.');
+      return;
+    }
     setEditingClient(c);
     setName(c.name);
     setCompany(c.company || '');
@@ -70,6 +80,10 @@ export const ClientsPage: React.FC = () => {
 
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários têm permissão para salvar clientes.');
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
 
@@ -117,6 +131,10 @@ export const ClientsPage: React.FC = () => {
   };
 
   const handleArchiveToggle = async (client: Client) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem arquivar ou reativar clientes.');
+      return;
+    }
     try {
       const isArchiving = client.status === 'ACTIVE';
       const nextStatus = isArchiving ? 'ARCHIVED' : 'ACTIVE';
@@ -141,6 +159,10 @@ export const ClientsPage: React.FC = () => {
   };
 
   const handleDeleteClient = async (client: Client) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem excluir clientes.');
+      return;
+    }
     const confirmed = window.confirm(
       `Tem certeza que deseja excluir permanentemente o cliente "${client.name}"?\n\nATENÇÃO: Todos os projetos, tarefas, entregáveis e arquivos vinculados serão excluídos em definitivo do banco de dados.`
     );
@@ -191,10 +213,12 @@ export const ClientsPage: React.FC = () => {
         title="Contas & Clientes"
         subtitle="Empresas e stakeholders com acesso ao portal"
         actions={
-          <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
-            <Plus size={14} />
-            <span>Novo Cliente</span>
-          </button>
+          isOwnerOrAdmin ? (
+            <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
+              <Plus size={14} />
+              <span>Novo Cliente</span>
+            </button>
+          ) : undefined
         }
       />
 
@@ -489,12 +513,12 @@ export const ClientsPage: React.FC = () => {
               <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
                 Limpar busca
               </button>
-            ) : (
+            ) : isOwnerOrAdmin ? (
               <button onClick={handleOpenCreate} className="btn btn-primary btn-sm">
                 <Plus size={14} />
                 <span>Adicionar Cliente</span>
               </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>
@@ -533,34 +557,36 @@ export const ClientsPage: React.FC = () => {
                       <span>{c._count?.projects || 0} PROJETOS / CAMPANHAS</span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button
-                        onClick={() => handleOpenEdit(c)}
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
-                        title="Editar cliente"
-                      >
-                        <Edit2 size={12} />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        onClick={() => handleArchiveToggle(c)}
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
-                        title={c.status === 'ACTIVE' ? 'Arquivar cliente' : 'Reativar cliente'}
-                      >
-                        {c.status === 'ACTIVE' ? <Archive size={12} /> : <RefreshCw size={12} />}
-                        <span>{c.status === 'ACTIVE' ? 'Arquivar' : 'Reativar'}</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClient(c)}
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '12px', color: 'var(--color-danger)' }}
-                        title="Excluir cliente permanentemente"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
+                    {isOwnerOrAdmin && (
+                      <div style={{ display: 'flex', gap: '0.35rem' }}>
+                        <button
+                          onClick={() => handleOpenEdit(c)}
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
+                          title="Editar cliente"
+                        >
+                          <Edit2 size={12} />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          onClick={() => handleArchiveToggle(c)}
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '12px' }}
+                          title={c.status === 'ACTIVE' ? 'Arquivar cliente' : 'Reativar cliente'}
+                        >
+                          {c.status === 'ACTIVE' ? <Archive size={12} /> : <RefreshCw size={12} />}
+                          <span>{c.status === 'ACTIVE' ? 'Arquivar' : 'Reativar'}</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClient(c)}
+                          className="btn btn-ghost btn-sm"
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '12px', color: 'var(--color-danger)' }}
+                          title="Excluir cliente permanentemente"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

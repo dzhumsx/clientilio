@@ -1,12 +1,14 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { ProjectService } from './projects.service';
 import { createProjectSchema, updateProjectSchema, listProjectsSchema } from './projects.validation';
-import { authenticate, resolveOrganization, requireTeamMember } from '../../middleware/auth';
+import { authenticate, resolveOrganization, requireTeamMember, requireRole } from '../../middleware/auth';
+import { MemberRole } from '@prisma/client';
 
 const router = Router();
 const projectService = new ProjectService();
 
 const orgMiddleware = [authenticate, resolveOrganization()];
+const adminOnlyMiddleware = [authenticate, resolveOrganization(), requireRole(MemberRole.OWNER, MemberRole.ADMIN)];
 
 // GET /api/projects
 router.get('/', ...orgMiddleware, async (req: Request, res: Response, next: NextFunction) => {
@@ -25,7 +27,7 @@ router.get('/', ...orgMiddleware, async (req: Request, res: Response, next: Next
 });
 
 // POST /api/projects
-router.post('/', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = createProjectSchema.parse(req.body);
     const project = await projectService.create(req.organizationId!, data, req.user!.userId);
@@ -46,7 +48,7 @@ router.get('/:id', ...orgMiddleware, async (req: Request, res: Response, next: N
 });
 
 // PUT /api/projects/:id
-router.put('/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+router.put('/:id', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = updateProjectSchema.parse(req.body);
     const project = await projectService.update(req.organizationId!, req.params.id as string, data);
@@ -57,7 +59,7 @@ router.put('/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res
 });
 
 // POST /api/projects/:id/archive
-router.post('/:id/archive', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/archive', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const project = await projectService.archive(req.organizationId!, req.params.id as string);
     res.json(project);
@@ -67,7 +69,7 @@ router.post('/:id/archive', ...orgMiddleware, requireTeamMember, async (req: Req
 });
 
 // POST /api/projects/:id/reactivate
-router.post('/:id/reactivate', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/reactivate', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const project = await projectService.reactivate(req.organizationId!, req.params.id as string);
     res.json(project);
@@ -77,7 +79,7 @@ router.post('/:id/reactivate', ...orgMiddleware, requireTeamMember, async (req: 
 });
 
 // DELETE /api/projects/:id
-router.delete('/:id', ...orgMiddleware, requireTeamMember, async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/:id', ...adminOnlyMiddleware, async (req: Request, res: Response, next: NextFunction) => {
   try {
     await projectService.delete(req.organizationId!, req.params.id as string);
     res.json({ message: 'Project permanently deleted' });

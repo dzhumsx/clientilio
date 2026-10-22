@@ -93,6 +93,8 @@ export const DashboardPage: React.FC = () => {
       .toUpperCase();
   };
 
+  const isOwnerOrAdmin = currentOrg?.role === 'OWNER' || currentOrg?.role === 'ADMIN';
+
   return (
     <div>
       <Navbar
@@ -104,14 +106,18 @@ export const DashboardPage: React.FC = () => {
               <ExternalLink size={13} style={{ color: 'var(--accent-primary)' }} />
               <span>Portal Demo</span>
             </Link>
-            <Link to="/dashboard/clients" className="btn btn-secondary btn-sm">
-              <Plus size={13} />
-              <span>Novo Cliente</span>
-            </Link>
-            <Link to="/dashboard/projects" className="btn btn-primary btn-sm">
-              <Plus size={13} />
-              <span>Nova Campanha</span>
-            </Link>
+            {isOwnerOrAdmin && (
+              <>
+                <Link to="/dashboard/clients" className="btn btn-secondary btn-sm">
+                  <Plus size={13} />
+                  <span>Novo Cliente</span>
+                </Link>
+                <Link to="/dashboard/projects" className="btn btn-primary btn-sm">
+                  <Plus size={13} />
+                  <span>Nova Campanha</span>
+                </Link>
+              </>
+            )}
           </div>
         }
       />
@@ -271,11 +277,15 @@ export const DashboardPage: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-tertiary)' }}>
                   <FolderKanban size={32} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
                   <p style={{ fontWeight: 500, fontSize: '13px', color: 'var(--text-primary)' }}>Nenhuma campanha cadastrada</p>
-                  <p style={{ fontSize: '12px', marginTop: '0.2rem', color: 'var(--text-secondary)' }}>Cadastre um cliente e inicie a primeira campanha.</p>
-                  <Link to="/dashboard/projects" className="btn btn-primary btn-sm" style={{ marginTop: '0.85rem' }}>
-                    <Plus size={13} />
-                    <span>Criar Campanha</span>
-                  </Link>
+                  <p style={{ fontSize: '12px', marginTop: '0.2rem', color: 'var(--text-secondary)' }}>
+                    {isOwnerOrAdmin ? 'Cadastre um cliente e inicie a primeira campanha.' : 'Nenhuma campanha ativa no momento.'}
+                  </p>
+                  {isOwnerOrAdmin && (
+                    <Link to="/dashboard/projects" className="btn btn-primary btn-sm" style={{ marginTop: '0.85rem' }}>
+                      <Plus size={13} />
+                      <span>Criar Campanha</span>
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div className="table-container" style={{ border: 'none' }}>
@@ -438,10 +448,12 @@ export const DashboardPage: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-tertiary)' }}>
                   <Building2 size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
                   <p style={{ fontWeight: 500, fontSize: '13px', color: 'var(--text-primary)' }}>Nenhum cliente cadastrado</p>
-                  <Link to="/dashboard/clients" className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }}>
-                    <Plus size={13} />
-                    <span>Cadastrar Cliente</span>
-                  </Link>
+                  {isOwnerOrAdmin && (
+                    <Link to="/dashboard/clients" className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }}>
+                      <Plus size={13} />
+                      <span>Cadastrar Cliente</span>
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
@@ -516,10 +528,12 @@ export const DashboardPage: React.FC = () => {
                 <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-tertiary)' }}>
                   <Users size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4 }} />
                   <p style={{ fontWeight: 500, fontSize: '13px', color: 'var(--text-primary)' }}>Nenhum membro listado</p>
-                  <Link to="/dashboard/team" className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }}>
-                    <UserPlus size={13} />
-                    <span>Convidar Membro</span>
-                  </Link>
+                  {isOwnerOrAdmin && (
+                    <Link to="/dashboard/team" className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }}>
+                      <UserPlus size={13} />
+                      <span>Convidar Membro</span>
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>

@@ -61,7 +61,13 @@ export const ProjectsPage: React.FC = () => {
     fetchData(statusFilter, search);
   }, [currentOrg, statusFilter, search]);
 
+  const isOwnerOrAdmin = currentOrg?.role === 'OWNER' || currentOrg?.role === 'ADMIN';
+
   const handleDeleteProject = async (proj: Project) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem excluir projetos.');
+      return;
+    }
     const confirmed = window.confirm(
       `Tem certeza que deseja excluir permanentemente o projeto "${proj.name}"?\n\nATENÇÃO: Todos os entregáveis, versões, tarefas e comentários deste projeto serão excluídos permanentemente.`
     );
@@ -80,6 +86,10 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const handleArchiveProject = async (proj: Project) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem arquivar ou reativar projetos.');
+      return;
+    }
     try {
       const isArchived = proj.status === 'ARCHIVED';
       if (isArchived) {
@@ -99,6 +109,10 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const handleOpenCreate = () => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem criar projetos.');
+      return;
+    }
     if (clients.length === 0) {
       toast.error('Cadastre um cliente antes de criar um projeto.');
       return;
@@ -116,6 +130,10 @@ export const ProjectsPage: React.FC = () => {
   };
 
   const handleOpenEdit = (p: Project) => {
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários podem editar projetos.');
+      return;
+    }
     setEditingProject(p);
     setClientId(p.clientId);
     setName(p.name);
@@ -130,6 +148,10 @@ export const ProjectsPage: React.FC = () => {
 
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOwnerOrAdmin) {
+      toast.error('Apenas administradores e proprietários têm permissão para salvar projetos.');
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
 
@@ -205,13 +227,15 @@ export const ProjectsPage: React.FC = () => {
         title="Campanhas & Projetos"
         subtitle="Prazos, criativos e escopos em produção para seus clientes"
         actions={
-          <button
-            onClick={handleOpenCreate}
-            className="btn btn-primary btn-sm"
-          >
-            <Plus size={14} />
-            <span>Nova Campanha</span>
-          </button>
+          isOwnerOrAdmin ? (
+            <button
+              onClick={handleOpenCreate}
+              className="btn btn-primary btn-sm"
+            >
+              <Plus size={14} />
+              <span>Nova Campanha</span>
+            </button>
+          ) : undefined
         }
       />
 
@@ -558,7 +582,7 @@ export const ProjectsPage: React.FC = () => {
               <button onClick={() => setSearch('')} className="btn btn-secondary btn-sm">
                 Limpar busca
               </button>
-            ) : (
+            ) : isOwnerOrAdmin ? (
               <button
                 onClick={handleOpenCreate}
                 className="btn btn-primary btn-sm"
@@ -566,7 +590,7 @@ export const ProjectsPage: React.FC = () => {
                 <Plus size={14} />
                 <span>Criar Projeto</span>
               </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <>
@@ -715,14 +739,16 @@ export const ProjectsPage: React.FC = () => {
                     >
                       <ExternalLink size={12} />
                     </a>
-                    <button
-                      onClick={() => handleOpenEdit(p)}
-                      className="btn btn-outline btn-sm"
-                      title="Editar projeto"
-                      style={{ height: '28px', padding: '0 7px' }}
-                    >
-                      <Edit2 size={12} />
-                    </button>
+                    {isOwnerOrAdmin && (
+                      <button
+                        onClick={() => handleOpenEdit(p)}
+                        className="btn btn-outline btn-sm"
+                        title="Editar projeto"
+                        style={{ height: '28px', padding: '0 7px' }}
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                    )}
                     <Link to="/dashboard/deliverables" className="btn btn-secondary btn-sm" style={{ height: '28px', padding: '0 8px', fontSize: '11px' }}>
                       <CheckCircle2 size={12} />
                       <span>Entregáveis</span>

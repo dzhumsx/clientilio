@@ -882,10 +882,10 @@ export const TeamPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
                     <Shield size={14} style={{ color: inviteRole === 'MEMBER' ? 'var(--accent-primary)' : 'var(--text-tertiary)' }} />
-                    <span>Colaborador</span>
+                    <span>Membro da Equipe</span>
                   </div>
                   <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px', lineHeight: '1.4' }}>
-                    Acesso a projetos, tarefas e entregáveis vinculados.
+                    Visualiza demandas e colabora em entregáveis. Não pode criar, alterar ou excluir clientes e projetos.
                   </p>
                 </div>
 
@@ -905,7 +905,7 @@ export const TeamPage: React.FC = () => {
                     <span>Administrador</span>
                   </div>
                   <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '4px', lineHeight: '1.4' }}>
-                    Gerencia membros, configurações, campanhas e clientes.
+                    Pode adicionar, alterar e excluir clientes e projetos, além de gerenciar a equipe e configurações.
                   </p>
                 </div>
               </div>
