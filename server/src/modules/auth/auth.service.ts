@@ -15,7 +15,7 @@ import {
   NotFoundError,
 } from '../../lib/errors';
 import { v4 as uuid } from 'uuid';
-import { generateBase64Id } from '../../lib/id';
+import { generateUniqueBase64Id } from '../../lib/id';
 import { mfaService } from '../../lib/mfa.service';
 import type {
   RegisterInput,
@@ -111,7 +111,7 @@ export class AuthService {
 
     // Create user, organization (if needed), owner membership, accept invitations and refresh token in a single transaction
     const { user, organization, joinedOrgs } = await prisma.$transaction(async (tx) => {
-      const userId = generateBase64Id('u');
+      const userId = await generateUniqueBase64Id('u', tx);
       const newUser = await tx.user.create({
         data: {
           id: userId,
@@ -131,7 +131,7 @@ export class AuthService {
 
       let newOrg: { id: string; name: string; slug: string; ownerId: string; planId: string } | null = null;
       if (shouldCreateOrg) {
-        const orgId = generateBase64Id('o');
+        const orgId = await generateUniqueBase64Id('o', tx);
         newOrg = await tx.organization.create({
           data: {
             id: orgId,

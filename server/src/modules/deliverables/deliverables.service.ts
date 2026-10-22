@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, AppError, ForbiddenError } from '../../lib/errors';
-import { generateBase64Id } from '../../lib/id';
+import { generateUniqueBase64Id } from '../../lib/id';
 import type {
   CreateTaskInput,
   UpdateTaskInput,
@@ -63,9 +63,11 @@ export class DeliverableService {
     });
     if (!project) throw new NotFoundError('Project');
 
+    const deliverableId = await generateUniqueBase64Id('d');
+
     const deliverable = await prisma.deliverable.create({
       data: {
-        id: generateBase64Id('d'),
+        id: deliverableId,
         organizationId: orgId,
         projectId: input.projectId,
         title: input.title,

@@ -1,6 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { NotFoundError, PlanLimitError } from '../../lib/errors';
-import { generateBase64Id } from '../../lib/id';
+import { generateUniqueBase64Id } from '../../lib/id';
 import { getOrgOwnerLimitsAndUsage } from '../billing/owner-limits';
 import type { CreateClientInput, UpdateClientInput, ListClientsInput } from './clients.validation';
 
@@ -12,9 +12,11 @@ export class ClientService {
       throw new PlanLimitError('active_clients', usage.clients, limits.maxActiveClients);
     }
 
+    const clientId = await generateUniqueBase64Id('c');
+
     const client = await prisma.client.create({
       data: {
-        id: generateBase64Id('c'),
+        id: clientId,
         organizationId: orgId,
         name: input.name,
         email: input.email,
